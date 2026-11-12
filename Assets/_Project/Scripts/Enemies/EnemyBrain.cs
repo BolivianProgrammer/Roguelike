@@ -77,6 +77,12 @@ namespace Roguelike.Enemies
         [Tooltip("How long a hit reaction plays on a stunned enemy before it sags back into the stun.")]
         [SerializeField] float staggeredReactionTime = 0.5f;
 
+        [Header("Finishers")]
+        [Tooltip("Health the player gets back for finishing a stunned enemy.")]
+        [SerializeField] float executionHeal = 15f;
+        [Tooltip("Stamina the player gets back for finishing a stunned enemy.")]
+        [SerializeField] float executionStamina = 50f;
+
         [Header("Death")]
         [Tooltip("How hard the killing blow throws the body, per m/s of swing speed.")]
         [SerializeField] float deathImpulsePerSpeed = 12f;
@@ -89,6 +95,9 @@ namespace Roguelike.Enemies
         float stateDuration;
         float nextAttackTime;
         float flinchImmuneUntil;
+        bool disarmed;
+        Transform headBone;
+        GameObject executeMarker;
         float resumeStaggerAt;
         float speed;
         int attackIndex;
@@ -103,6 +112,9 @@ namespace Roguelike.Enemies
         void Awake()
         {
             health = GetComponent<EnemyHealth>();
+            // A stunned enemy is open to a finisher.
+            health.CanBeExecuted = () => state == State.Stagger;
+            if (animator != null && animator.isHuman) headBone = animator.GetBoneTransform(HumanBodyBones.Head);
         }
 
         void OnEnable()
@@ -153,7 +165,7 @@ namespace Roguelike.Enemies
                     Face(toTarget, turnSpeed);
                     if (distance > stopDistance)
                         desiredSpeed = distance > runDistance ? runSpeed : walkSpeed;
-                    if (distance <= attackRange && Time.time >= nextAttackTime && Vector3.Angle(transform.forward, toTarget) < 25f)
+                    if (!disarmed && distance <= attackRange && Time.time >= nextAttackTime && Vector3.Angle(transform.forward, toTarget) < 25f)
                         StartAttack();
                     break;
 
@@ -190,6 +202,7 @@ namespace Roguelike.Enemies
             }
 
             Move(desiredSpeed);
+            PlaceExecuteMarker();
         }
 
         void Move(float desiredSpeed)
@@ -302,20 +315,14 @@ namespace Roguelike.Enemies
         void OnDied(DamageInfo info)
         {
             Enter(State.Dead);
-            if (weaponHitbox != null)
-            {
-                weaponHitbox.End();
-                Destroy(weaponHitbox.gameObject);
-            }
+            SetExecuteMarker(false);
+            Disarm();
 
-            // The weapon falls out of its hand as a plain physics object.
-            if (weaponVisual != null)
+            if (info.Execution)
             {
-                weaponVisual.SetParent(transform, true);
-                var blade = weaponVisual.gameObject.AddComponent<BoxCollider>();
-                blade.center = new Vector3(0f, 0f, 0.4f);
-                blade.size = new Vector3(0.05f, 0.02f, 0.95f);
-                weaponVisual.gameObject.AddComponent<Rigidbody>().mass = 1.5f;
+                DamagePopup.Spawn(info.Point + Vector3.up * 0.2f, "EXECUTION", new Color(1f, 0.3f, 0.1f));
+                if (target != null) target.Heal(executionHeal);
+                PlayerStamina.Restore(executionStamina);
             }
 
             if (ragdoll != null)
@@ -327,8 +334,74 @@ namespace Roguelike.Enemies
             Destroy(gameObject, corpseLifetime);
         }
 
+        /// <summary>True if the enemy's weapon is held by the given bone or anything below it (e.g. its sword arm).</summary>
+        public bool HoldsWeaponUnder(Transform bone)
+        {
+            return !disarmed && weaponVisual != null && weaponVisual.IsChildOf(bone);
+        }
+
+        /// <summary>The weapon falls out of the enemy's hand as a plain physics object. It cannot attack afterwards.</summary>
+        public void Disarm()
+        {
+            if (disarmed) return;
+            disarmed = true;
+
+            if (weaponHitbox != null)
+            {
+                weaponHitbox.End();
+                Destroy(weaponHitbox.gameObject);
+            }
+
+            if (weaponVisual != null)
+            {
+                weaponVisual.SetParent(transform, true);
+                var blade = weaponVisual.gameObject.AddComponent<BoxCollider>();
+                blade.center = new Vector3(0f, 0f, 0.4f);
+                blade.size = new Vector3(0.05f, 0.02f, 0.95f);
+                weaponVisual.gameObject.AddComponent<Rigidbody>().mass = 1.5f;
+            }
+
+            if (state == State.Attack)
+            {
+                animator.CrossFadeInFixedTime("Locomotion", 0.2f);
+                Enter(State.Chase);
+            }
+        }
+
+        /// <summary>A marker over the head of a stunned enemy: hit the head (or stab the body) now to finish it.</summary>
+        void SetExecuteMarker(bool show)
+        {
+            if (!show)
+            {
+                if (executeMarker != null) Destroy(executeMarker);
+                executeMarker = null;
+                return;
+            }
+            if (executeMarker != null) return;
+
+            executeMarker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            executeMarker.name = "Execute Marker";
+            Destroy(executeMarker.GetComponent<Collider>());
+            executeMarker.transform.SetParent(transform, false);
+            executeMarker.transform.localScale = Vector3.one * 0.09f;
+            var markerRenderer = executeMarker.GetComponent<MeshRenderer>();
+            var shader = Shader.Find("Sprites/Default");
+            if (shader != null) markerRenderer.material = new Material(shader);
+            markerRenderer.material.color = new Color(1f, 0.8f, 0.1f);
+            markerRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            PlaceExecuteMarker();
+        }
+
+        void PlaceExecuteMarker()
+        {
+            if (executeMarker == null) return;
+            Vector3 top = headBone != null ? headBone.position : transform.position + Vector3.up * 1.6f;
+            executeMarker.transform.position = top + Vector3.up * (0.32f + Mathf.Sin(Time.time * 6f) * 0.03f);
+        }
+
         void Enter(State next, float duration = 0f)
         {
+            SetExecuteMarker(next == State.Stagger);
             state = next;
             resumeStaggerAt = 0f;
             stateTime = 0f;

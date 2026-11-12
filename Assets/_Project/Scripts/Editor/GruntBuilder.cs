@@ -4,6 +4,7 @@ using UnityEditor.Animations;
 using UnityEngine;
 using Roguelike.Combat;
 using Roguelike.Enemies;
+using BodyPart = Roguelike.Combat.BodyPart;
 
 namespace Roguelike.EditorTools
 {
@@ -58,6 +59,12 @@ namespace Roguelike.EditorTools
             for (int i = 0; i < bodies.Length; i++)
                 bodyList.GetArrayElementAtIndex(i).objectReferenceValue = bodies[i];
             ragdollData.ApplyModifiedPropertiesWithoutUndo();
+
+            var dismemberment = root.AddComponent<EnemyDismemberment>();
+            var dismembermentData = new SerializedObject(dismemberment);
+            dismembermentData.FindProperty("limbModel").objectReferenceValue = model;
+            dismembermentData.FindProperty("skeletonRoot").objectReferenceValue = animator.GetBoneTransform(HumanBodyBones.Hips);
+            dismembermentData.ApplyModifiedPropertiesWithoutUndo();
 
             var brainData = new SerializedObject(brain);
             brainData.FindProperty("animator").objectReferenceValue = animator;
@@ -144,48 +151,50 @@ namespace Roguelike.EditorTools
             Transform head = animator.GetBoneTransform(HumanBodyBones.Head);
             if (neck == null) neck = head;
 
-            Rigidbody hipsBody = AddBody(hips, 12f, HitZoneType.Torso, bodies);
+            Rigidbody hipsBody = AddBody(hips, 12f, HitZoneType.Torso, BodyPart.Torso, bodies);
             AddSphere(hips, hips.position, 0.16f);
 
-            Rigidbody chestBody = AddBody(spine, 15f, HitZoneType.Torso, bodies);
+            Rigidbody chestBody = AddBody(spine, 15f, HitZoneType.Torso, BodyPart.Torso, bodies);
             AddCapsule(spine, neck, 0.16f);
             AddJoint(chestBody, hipsBody, 25f, 20f);
 
-            Rigidbody headBody = AddBody(head, 5f, HitZoneType.Head, bodies);
+            Rigidbody headBody = AddBody(head, 5f, HitZoneType.Head, BodyPart.Head, bodies);
             AddSphere(head, head.position + Vector3.up * 0.09f, 0.11f);
             AddJoint(headBody, chestBody, 35f, 25f);
 
-            AddLimb(animator, HumanBodyBones.LeftUpperArm, HumanBodyBones.LeftLowerArm, HumanBodyBones.LeftHand, 0.055f, 0.045f, 2.5f, 2f, chestBody, bodies);
-            AddLimb(animator, HumanBodyBones.RightUpperArm, HumanBodyBones.RightLowerArm, HumanBodyBones.RightHand, 0.055f, 0.045f, 2.5f, 2f, chestBody, bodies);
-            AddLimb(animator, HumanBodyBones.LeftUpperLeg, HumanBodyBones.LeftLowerLeg, HumanBodyBones.LeftFoot, 0.085f, 0.06f, 7f, 4f, hipsBody, bodies);
-            AddLimb(animator, HumanBodyBones.RightUpperLeg, HumanBodyBones.RightLowerLeg, HumanBodyBones.RightFoot, 0.085f, 0.06f, 7f, 4f, hipsBody, bodies);
+            AddLimb(animator, HumanBodyBones.LeftUpperArm, HumanBodyBones.LeftLowerArm, HumanBodyBones.LeftHand, 0.055f, 0.045f, 2.5f, 2f, chestBody, BodyPart.LeftArm, bodies);
+            AddLimb(animator, HumanBodyBones.RightUpperArm, HumanBodyBones.RightLowerArm, HumanBodyBones.RightHand, 0.055f, 0.045f, 2.5f, 2f, chestBody, BodyPart.RightArm, bodies);
+            AddLimb(animator, HumanBodyBones.LeftUpperLeg, HumanBodyBones.LeftLowerLeg, HumanBodyBones.LeftFoot, 0.085f, 0.06f, 7f, 4f, hipsBody, BodyPart.LeftLeg, bodies);
+            AddLimb(animator, HumanBodyBones.RightUpperLeg, HumanBodyBones.RightLowerLeg, HumanBodyBones.RightFoot, 0.085f, 0.06f, 7f, 4f, hipsBody, BodyPart.RightLeg, bodies);
 
             return bodies.ToArray();
         }
 
         static void AddLimb(Animator animator, HumanBodyBones upper, HumanBodyBones lower, HumanBodyBones end,
-            float upperRadius, float lowerRadius, float upperMass, float lowerMass, Rigidbody parent, List<Rigidbody> bodies)
+            float upperRadius, float lowerRadius, float upperMass, float lowerMass, Rigidbody parent, BodyPart part, List<Rigidbody> bodies)
         {
             Transform upperBone = animator.GetBoneTransform(upper);
             Transform lowerBone = animator.GetBoneTransform(lower);
             Transform endBone = animator.GetBoneTransform(end);
 
-            Rigidbody upperBody = AddBody(upperBone, upperMass, HitZoneType.Limb, bodies);
+            Rigidbody upperBody = AddBody(upperBone, upperMass, HitZoneType.Limb, part, bodies);
             AddCapsule(upperBone, lowerBone, upperRadius);
             AddJoint(upperBody, parent, 60f, 30f);
 
-            Rigidbody lowerBody = AddBody(lowerBone, lowerMass, HitZoneType.Limb, bodies);
+            Rigidbody lowerBody = AddBody(lowerBone, lowerMass, HitZoneType.Limb, part, bodies);
             AddCapsule(lowerBone, endBone, lowerRadius);
             AddJoint(lowerBody, upperBody, 50f, 10f);
         }
 
-        static Rigidbody AddBody(Transform bone, float mass, HitZoneType zone, List<Rigidbody> bodies)
+        static Rigidbody AddBody(Transform bone, float mass, HitZoneType zone, BodyPart part, List<Rigidbody> bodies)
         {
             var body = bone.gameObject.AddComponent<Rigidbody>();
             body.mass = mass;
             body.isKinematic = true;
             body.useGravity = false;
-            bone.gameObject.AddComponent<HitZone>().zone = zone;
+            var hitZone = bone.gameObject.AddComponent<HitZone>();
+            hitZone.zone = zone;
+            hitZone.part = part;
             bodies.Add(body);
             return body;
         }

@@ -43,6 +43,13 @@ namespace Roguelike.Player
                 current = Mathf.Min(max, current + regenPerSecond * Time.deltaTime);
         }
 
+        /// <summary>Gives stamina back at once, e.g. as a reward for a finisher.</summary>
+        public static void Restore(float amount)
+        {
+            if (instance == null) return;
+            instance.current = Mathf.Min(instance.max, instance.current + amount);
+        }
+
         /// <summary>True if at least this much stamina is available, without spending it.</summary>
         public static bool Has(float amount) => instance == null || instance.current >= amount;
 

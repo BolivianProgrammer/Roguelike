@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 using UnityEngine.XR;
 using Roguelike.Weapons;
 
@@ -16,6 +17,7 @@ namespace Roguelike.Player
     {
         public enum Mode { Auto, ForceDesktop, Disabled }
         enum Move { None, Swing, Stab }
+        enum AttackHeight { High, Mid, Low }
         const float MaxMoveStep = 1f / 30f;
 
         [Tooltip("Auto: desktop controls only when no headset is running. Force Desktop: always, for testing.")]
@@ -66,7 +68,13 @@ namespace Roguelike.Player
         [Tooltip("How much each kilogram of weapon slows the swing and stab down.")]
         [SerializeField] float weightSlowdownPerKg = 0.12f;
 
-        [Header("Heavy attack (hold left click)")]
+        [Header("Attack height (Z / X / C)")]
+        [Tooltip("How far above chest level (meters) high attacks are aimed, to reach the head.")]
+        [SerializeField] float highOffset = 0.22f;
+        [Tooltip("How far below chest level (meters) low attacks are aimed, to reach the legs.")]
+        [SerializeField] float lowOffset = -0.75f;
+
+        [Header("Heavy attack (hold the attack button)")]
         [Tooltip("Seconds the button must be held for the swing to become a heavy attack.")]
         [SerializeField] float heavyChargeTime = 0.45f;
         [Tooltip("How far back a heavy attack is drawn before the swing.")]
@@ -92,6 +100,8 @@ namespace Roguelike.Player
         float moveTime;
         float swingRoll;
         bool nextSwingFromLeft;
+        AttackHeight attackHeight = AttackHeight.Mid;
+        ButtonControl chargeButton;
         bool charging;
         float chargeTime;
         bool heavy;
@@ -276,6 +286,11 @@ namespace Roguelike.Player
             }
             if (move != Move.None) return;
 
+            // Z / X / C: aim attacks at head, chest or leg height.
+            if (keyboard.zKey.wasPressedThisFrame) attackHeight = AttackHeight.High;
+            if (keyboard.xKey.wasPressedThisFrame) attackHeight = AttackHeight.Mid;
+            if (keyboard.cKey.wasPressedThisFrame) attackHeight = AttackHeight.Low;
+
             if (!charging && mouse.leftButton.wasPressedThisFrame)
             {
                 // Swing the way the mouse is moving: left, right, or down for an overhead strike.
@@ -289,14 +304,17 @@ namespace Roguelike.Player
                     swingRoll = nextSwingFromLeft ? 180f : 0f;
                 }
                 nextSwingFromLeft = swingRoll == 0f;
-                charging = true;
-                chargeTime = 0f;
+                BeginCharge(mouse.leftButton);
+            }
+            else if (!charging && TryDirectionKey(keyboard))
+            {
+                // A number key picked an exact swing direction.
             }
             else if (charging)
             {
                 // Holding the button draws the weapon back; letting go swings. A long hold is a heavy attack.
                 chargeTime += Time.deltaTime;
-                if (!mouse.leftButton.isPressed)
+                if (chargeButton == null || !chargeButton.isPressed)
                 {
                     charging = false;
                     heavy = chargeTime >= heavyChargeTime && PlayerStamina.Has(HeldStaminaCost() * heavyStaminaScale);
@@ -307,6 +325,46 @@ namespace Roguelike.Player
             {
                 heavy = false;
                 StartMove(Move.Stab);
+            }
+        }
+
+        /// <summary>
+        /// Number keys swing in one exact direction each, for testing where hits land:
+        /// 1 right to left, 2 left to right, 3 overhead, 4 upward, 5 diagonal down from the right, 6 diagonal down from the left.
+        /// </summary>
+        bool TryDirectionKey(Keyboard keyboard)
+        {
+            if (keyboard.digit1Key.wasPressedThisFrame) return BeginDirected(keyboard.digit1Key, 0f);
+            if (keyboard.digit2Key.wasPressedThisFrame) return BeginDirected(keyboard.digit2Key, 180f);
+            if (keyboard.digit3Key.wasPressedThisFrame) return BeginDirected(keyboard.digit3Key, 90f);
+            if (keyboard.digit4Key.wasPressedThisFrame) return BeginDirected(keyboard.digit4Key, 270f);
+            if (keyboard.digit5Key.wasPressedThisFrame) return BeginDirected(keyboard.digit5Key, 45f);
+            if (keyboard.digit6Key.wasPressedThisFrame) return BeginDirected(keyboard.digit6Key, 135f);
+            return false;
+        }
+
+        bool BeginDirected(ButtonControl button, float roll)
+        {
+            swingRoll = roll;
+            BeginCharge(button);
+            return true;
+        }
+
+        void BeginCharge(ButtonControl button)
+        {
+            chargeButton = button;
+            charging = true;
+            chargeTime = 0f;
+        }
+
+        /// <summary>How far above or below chest level attacks are aimed, in meters.</summary>
+        float HeightOffset()
+        {
+            switch (attackHeight)
+            {
+                case AttackHeight.High: return highOffset;
+                case AttackHeight.Low: return lowOffset;
+                default: return 0f;
             }
         }
 
@@ -403,7 +461,8 @@ namespace Roguelike.Player
 
         /// <summary>
         /// Hand pose at one angle of a swing. The swing plane is set by swingRoll (0 = right to left,
-        /// 180 = left to right, 90 = overhead). The blade points outwards and its edge leads the swing.
+        /// 180 = left to right, 90 = overhead, 270 = upward, 45 and 135 = diagonals).
+        /// The blade points outwards and its edge leads the swing.
         /// </summary>
         void SwingPose(float angle, out Vector3 position, out Quaternion rotation)
         {
@@ -411,7 +470,7 @@ namespace Roguelike.Player
             Vector3 direction = Quaternion.AngleAxis(angle, axis) * Vector3.forward;
             Vector3 travel = -Vector3.Cross(axis, direction);
 
-            position = shoulder + direction * reach;
+            position = shoulder + Vector3.up * HeightOffset() + direction * reach;
             rotation = Quaternion.LookRotation(direction, Vector3.Cross(direction, travel));
         }
 
@@ -422,6 +481,9 @@ namespace Roguelike.Player
 
             float windup = stabWindup * weightScale;
             float thrust = stabTime * weightScale;
+            Vector3 height = Vector3.up * HeightOffset();
+            Vector3 stabStart = this.stabStart + height;
+            Vector3 stabEnd = this.stabEnd + height;
 
             if (moveTime < windup)
             {
@@ -467,7 +529,11 @@ namespace Roguelike.Player
             if (PlayerStamina.Exists)
                 GUI.Label(new Rect(Screen.width * 0.5f - 150f, Screen.height - 62f, 300f, 22f),
                     "Stamina: " + Mathf.CeilToInt(PlayerStamina.Current) + " / " + Mathf.CeilToInt(PlayerStamina.Max)
+                    + "   |   Aim: " + attackHeight
                     + (charging && chargeTime >= heavyChargeTime ? "   HEAVY" : ""));
+
+            if (!string.IsNullOrEmpty(Enemies.EnemyHealth.LastHit))
+                GUI.Label(new Rect(Screen.width * 0.5f - 150f, Screen.height - 84f, 400f, 22f), "Last hit: " + Enemies.EnemyHealth.LastHit);
 
             if (rightGrabber.Held == null) return;
             var weapon = rightGrabber.Held.GetComponent<Weapon>();
@@ -496,15 +562,19 @@ namespace Roguelike.Player
                 return;
             }
 
-            GUI.Box(new Rect(10f, 10f, 330f, 264f), "Desktop controls (F1 to hide)");
-            GUI.Label(new Rect(20f, 34f, 310f, 232f),
+            GUI.Box(new Rect(10f, 10f, 330f, 345f), "Desktop controls (F1 to hide)");
+            GUI.Label(new Rect(20f, 34f, 310f, 315f),
                 "WASD: move    Shift: sprint\n" +
                 "Mouse: look\n" +
                 "E: pick up what you look at / draw / put away\n" +
                 "G: drop or throw\n" +
                 "Left click: swing (flick the mouse left,\n" +
                 "    right or down to choose the direction)\n" +
-                "Hold left click, then release: heavy attack\n" +
+                "1: swing right to left    2: left to right\n" +
+                "3: overhead    4: upward\n" +
+                "5: diagonal from right    6: diagonal from left\n" +
+                "Z / X / C: aim high (head) / mid / low (legs)\n" +
+                "Hold any attack button, then release: heavy\n" +
                 "Middle click or F: stab\n" +
                 "Hold right click: guard (look at the attack)\n" +
                 "R: weapon special attack\n" +

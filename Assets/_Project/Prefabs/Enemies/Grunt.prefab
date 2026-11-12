@@ -527,6 +527,10 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 8103833335618897511}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ea583f62a54f40c4aae7aa9203568dff,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5150878628833668855}
     - targetCorrespondingSourceObject: {fileID: 1082271958561512970, guid: ea583f62a54f40c4aae7aa9203568dff,
         type: 3}
       insertIndex: -1
@@ -746,6 +750,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   zone: 2
+  part: 2
 --- !u!136 &4393782628278488223
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -861,6 +866,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   zone: 2
+  part: 4
 --- !u!136 &4778920128776463313
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -976,6 +982,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   zone: 2
+  part: 4
 --- !u!136 &3105012226001299252
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -1091,6 +1098,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   zone: 0
+  part: 0
 --- !u!136 &4369009090563555233
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -1212,6 +1220,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   zone: 2
+  part: 3
 --- !u!136 &4209292934840547942
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -1373,14 +1382,43 @@ MonoBehaviour:
   attackRange: 1.6
   timeBetweenAttacks: {x: 1, y: 2}
   flinchThreshold: 10
+  heavyStaggerThreshold: 60
+  heavyStun: 1.8
   flinchDuration: 0.7
   poiseTime: 1.5
   blockedRecoil: 0.7
   parriedStun: 2.5
   staggeredFlinchThreshold: 3
   staggeredReactionTime: 0.5
+  executionHeal: 15
+  executionStamina: 50
   deathImpulsePerSpeed: 12
   corpseLifetime: 10
+--- !u!114 &5150878628833668855
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4395046874794843517}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e78c39baa78824c48a5f40418ea2ac62, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  limbModel: {fileID: 919132149155446097, guid: ea583f62a54f40c4aae7aa9203568dff,
+    type: 3}
+  skeletonRoot: {fileID: 8927776825236023123}
+  headHealth: 40
+  armHealth: 30
+  legHealth: 45
+  corpseFactor: 0.5
+  minimumHit: 8
+  slashFactor: 1
+  bluntFactor: 0.6
+  stabFactor: 0.2
+  bleedPerSecond: 12
+  pieceLifetime: 10
 --- !u!1 &4556022786521808422 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1082271958561512970, guid: ea583f62a54f40c4aae7aa9203568dff,
@@ -1427,6 +1465,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   zone: 0
+  part: 0
 --- !u!135 &6183227700675773720
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -1494,6 +1533,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   zone: 2
+  part: 2
 --- !u!136 &8867735307700889545
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -1609,6 +1649,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   zone: 2
+  part: 3
 --- !u!136 &1875100009142408966
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -1724,6 +1765,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   zone: 1
+  part: 1
 --- !u!135 &4819900814905696279
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -1843,6 +1885,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   zone: 2
+  part: 5
 --- !u!136 &1132542588254756352
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -1958,6 +2001,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   zone: 2
+  part: 5
 --- !u!136 &2488526786166495413
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -2027,3 +2071,9 @@ CharacterJoint:
   m_EnablePreprocessing: 1
   m_MassScale: 1
   m_ConnectedMassScale: 1
+--- !u!4 &8927776825236023123 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5465940246521907071, guid: ea583f62a54f40c4aae7aa9203568dff,
+    type: 3}
+  m_PrefabInstance: {fileID: 3476565647261655084}
+  m_PrefabAsset: {fileID: 0}

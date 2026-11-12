@@ -27,6 +27,8 @@ namespace Roguelike.Combat
         /// <summary>The collider that was struck, so targets can tell head from limb.</summary>
         public Collider HitCollider;
         public GameObject Source;
+        /// <summary>Set by the target when this hit was a finisher on a stunned enemy.</summary>
+        public bool Execution;
     }
 
     /// <summary>Anything that can take a hit: enemies, totems, the boss, the player.</summary>
