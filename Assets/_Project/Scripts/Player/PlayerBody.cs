@@ -24,10 +24,30 @@ namespace Roguelike.Player
         public float Height { get; private set; } = 1.7f;
         public Transform Head => head;
 
+        /// <summary>
+        /// How fast the whole player rig is moving through the world (walking, not hand or head movement).
+        /// Weapons subtract this so that walking into an enemy does not count as a swing.
+        /// </summary>
+        public static Vector3 RigVelocity { get; private set; }
+
+        Vector3 lastOriginPosition;
+
         void Start()
         {
             if (head != null) yaw = head.eulerAngles.y;
+            if (origin != null) lastOriginPosition = origin.position;
         }
+
+        void FixedUpdate()
+        {
+            if (origin == null) return;
+            Vector3 velocity = (origin.position - lastOriginPosition) / Time.fixedDeltaTime;
+            lastOriginPosition = origin.position;
+            // Smoothed, because the rig moves once per rendered frame rather than once per physics step.
+            RigVelocity = Vector3.Lerp(RigVelocity, velocity, 0.3f);
+        }
+
+        void OnDestroy() => RigVelocity = Vector3.zero;
 
         void LateUpdate()
         {

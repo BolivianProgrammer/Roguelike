@@ -63,6 +63,19 @@ namespace Roguelike.Player
         [SerializeField] float swingStartAngle = 80f;
         [SerializeField] float swingEndAngle = -80f;
 
+        [Tooltip("How much each kilogram of weapon slows the swing and stab down.")]
+        [SerializeField] float weightSlowdownPerKg = 0.12f;
+
+        [Header("Heavy attack (hold left click)")]
+        [Tooltip("Seconds the button must be held for the swing to become a heavy attack.")]
+        [SerializeField] float heavyChargeTime = 0.45f;
+        [Tooltip("How far back a heavy attack is drawn before the swing.")]
+        [SerializeField] float heavyStartAngle = 115f;
+        [SerializeField] float heavyDamageScale = 1.6f;
+        [SerializeField] float heavyStaggerScale = 2f;
+        [Tooltip("A heavy attack costs this many times the weapon's normal stamina per hit.")]
+        [SerializeField] float heavyStaminaScale = 2.5f;
+
         [Header("Stab")]
         [SerializeField] Vector3 stabStart = new Vector3(0.2f, -0.22f, 0.15f);
         [SerializeField] Vector3 stabEnd = new Vector3(0.08f, -0.15f, 0.8f);
@@ -79,6 +92,10 @@ namespace Roguelike.Player
         float moveTime;
         float swingRoll;
         bool nextSwingFromLeft;
+        bool charging;
+        float chargeTime;
+        bool heavy;
+        float weightScale = 1f;
         Vector2 recentMouse;
         Vector3 moveStartPosition;
         Quaternion moveStartRotation;
@@ -94,6 +111,8 @@ namespace Roguelike.Player
         void Start()
         {
             Active = mode == Mode.ForceDesktop || mode == Mode.Auto && !HeadsetRunning();
+            // With a mouse the weapon also moves whenever the camera turns, so only deliberate attacks may hurt.
+            Weapon.RequireAttackWindow = Active;
             if (!Active)
             {
                 enabled = false;
@@ -184,7 +203,7 @@ namespace Roguelike.Player
             if (keyboard.aKey.isPressed) input.x -= 1f;
             input = Vector3.ClampMagnitude(input, 1f);
 
-            float speed = keyboard.leftShiftKey.isPressed ? sprintSpeed : walkSpeed;
+            float speed = (keyboard.leftShiftKey.isPressed ? sprintSpeed : walkSpeed) * PlayerStats.Get(StatType.MoveSpeed);
             Vector3 velocity = origin.rotation * input * speed;
 
             verticalSpeed = character.isGrounded ? -1f : verticalSpeed + Physics.gravity.y * Time.deltaTime;
@@ -208,6 +227,9 @@ namespace Roguelike.Player
                 rightGrabber.Release();
             }
 
+            // R: the held weapon's special attack.
+            if (keyboard.rKey.wasPressedThisFrame) rightGrabber.ActivateHeldSpecial();
+
             // Q: second hand on or off the weapon.
             if (keyboard.qKey.wasPressedThisFrame)
             {
@@ -220,7 +242,8 @@ namespace Roguelike.Player
         {
             foreach (var holster in FindObjectsOfType<Holster>())
             {
-                if (holster.Item == null) continue;
+                // Only what is worn; weapons on a rack are picked up by looking at them.
+                if (holster.Item == null || !holster.OnBody) continue;
                 rightGrabber.GrabItem(holster.Item);
                 return;
             }
@@ -232,7 +255,7 @@ namespace Roguelike.Player
             Holster free = null;
             foreach (var holster in FindObjectsOfType<Holster>())
             {
-                if (holster.Item != null) continue;
+                if (holster.Item != null || !holster.OnBody) continue;
                 free = holster;
                 break;
             }
@@ -245,9 +268,15 @@ namespace Roguelike.Player
 
         void HandleAttacks(Keyboard keyboard, Mouse mouse)
         {
+            // No weapon in hand, no attack.
+            if (rightGrabber.Held == null)
+            {
+                charging = false;
+                return;
+            }
             if (move != Move.None) return;
 
-            if (mouse.leftButton.wasPressedThisFrame)
+            if (!charging && mouse.leftButton.wasPressedThisFrame)
             {
                 // Swing the way the mouse is moving: left, right, or down for an overhead strike.
                 if (recentMouse.magnitude > 1.5f)
@@ -260,10 +289,23 @@ namespace Roguelike.Player
                     swingRoll = nextSwingFromLeft ? 180f : 0f;
                 }
                 nextSwingFromLeft = swingRoll == 0f;
-                StartMove(Move.Swing);
+                charging = true;
+                chargeTime = 0f;
+            }
+            else if (charging)
+            {
+                // Holding the button draws the weapon back; letting go swings. A long hold is a heavy attack.
+                chargeTime += Time.deltaTime;
+                if (!mouse.leftButton.isPressed)
+                {
+                    charging = false;
+                    heavy = chargeTime >= heavyChargeTime && PlayerStamina.Has(HeldStaminaCost() * heavyStaminaScale);
+                    StartMove(Move.Swing);
+                }
             }
             else if (mouse.middleButton.wasPressedThisFrame || keyboard.fKey.wasPressedThisFrame)
             {
+                heavy = false;
                 StartMove(Move.Stab);
             }
         }
@@ -274,6 +316,22 @@ namespace Roguelike.Player
             moveTime = 0f;
             moveStartPosition = rightPosition;
             moveStartRotation = rightRotation;
+
+            // Heavier weapons take longer to swing.
+            weightScale = 1f + rightGrabber.Held.Body.mass * weightSlowdownPerKg;
+
+            // Weapons can only hurt while the attack is playing.
+            float duration = next == Move.Swing
+                ? (swingWindup + swingTime) * weightScale
+                : (stabWindup + stabTime) * weightScale + stabHold;
+            if (heavy) Weapon.OpenAttackWindow(duration + 0.15f, heavyDamageScale, heavyStaggerScale, heavyStaminaScale);
+            else Weapon.OpenAttackWindow(duration + 0.15f);
+        }
+
+        float HeldStaminaCost()
+        {
+            var weapon = rightGrabber.Held != null ? rightGrabber.Held.GetComponent<Weapon>() : null;
+            return weapon != null && weapon.Definition != null ? weapon.Definition.StaminaCost : 0f;
         }
 
         void UpdateHands(bool guarding)
@@ -283,8 +341,17 @@ namespace Roguelike.Player
             if (move == Move.Swing) UpdateSwing();
             else if (move == Move.Stab) UpdateStab();
 
-            if (move == Move.None)
+            if (move == Move.None && charging)
             {
+                // Drawing back for a swing: further back the longer the button is held.
+                float drawn = Mathf.Clamp01(chargeTime / heavyChargeTime);
+                SwingPose(Mathf.Lerp(swingStartAngle * 0.6f, heavyStartAngle, drawn), out Vector3 drawPosition, out Quaternion drawRotation);
+                rightPosition = Vector3.Lerp(rightPosition, drawPosition, blend);
+                rightRotation = Quaternion.Slerp(rightRotation, drawRotation, blend);
+            }
+            else if (move == Move.None)
+            {
+                guarding &= rightGrabber.Held != null;
                 Vector3 goalPosition = guarding ? guardPosition : rightRestPosition;
                 Vector3 goalDirection = (guarding ? guardDirection : restDirection).normalized;
                 Quaternion goalRotation = Quaternion.LookRotation(goalDirection, Vector3.back);
@@ -312,18 +379,21 @@ namespace Roguelike.Player
             moveTime += Mathf.Min(Time.deltaTime, MaxMoveStep);
             // Overhead strikes stop short so the blade does not bury itself in the floor.
             float endAngle = Mathf.Approximately(swingRoll, 90f) ? swingEndAngle * 0.6f : swingEndAngle;
+            float startAngle = heavy ? heavyStartAngle : swingStartAngle;
+            float windup = swingWindup * weightScale;
+            float swing = swingTime * weightScale;
 
-            if (moveTime < swingWindup)
+            if (moveTime < windup)
             {
-                float t = Mathf.SmoothStep(0f, 1f, moveTime / swingWindup);
-                SwingPose(swingStartAngle, out Vector3 position, out Quaternion rotation);
+                float t = Mathf.SmoothStep(0f, 1f, moveTime / windup);
+                SwingPose(startAngle, out Vector3 position, out Quaternion rotation);
                 rightPosition = Vector3.Lerp(moveStartPosition, position, t);
                 rightRotation = Quaternion.Slerp(moveStartRotation, rotation, t);
             }
-            else if (moveTime < swingWindup + swingTime)
+            else if (moveTime < windup + swing)
             {
-                float t = (moveTime - swingWindup) / swingTime;
-                SwingPose(Mathf.Lerp(swingStartAngle, endAngle, t), out rightPosition, out rightRotation);
+                float t = (moveTime - windup) / swing;
+                SwingPose(Mathf.Lerp(startAngle, endAngle, t), out rightPosition, out rightRotation);
             }
             else
             {
@@ -350,19 +420,22 @@ namespace Roguelike.Player
             moveTime += Mathf.Min(Time.deltaTime, MaxMoveStep);
             Quaternion aim = Quaternion.LookRotation(Vector3.forward, Vector3.up);
 
-            if (moveTime < stabWindup)
+            float windup = stabWindup * weightScale;
+            float thrust = stabTime * weightScale;
+
+            if (moveTime < windup)
             {
-                float t = Mathf.SmoothStep(0f, 1f, moveTime / stabWindup);
+                float t = Mathf.SmoothStep(0f, 1f, moveTime / windup);
                 rightPosition = Vector3.Lerp(moveStartPosition, stabStart, t);
                 rightRotation = Quaternion.Slerp(moveStartRotation, aim, t);
             }
-            else if (moveTime < stabWindup + stabTime)
+            else if (moveTime < windup + thrust)
             {
-                float t = (moveTime - stabWindup) / stabTime;
+                float t = (moveTime - windup) / thrust;
                 rightPosition = Vector3.Lerp(stabStart, stabEnd, t);
                 rightRotation = aim;
             }
-            else if (moveTime >= stabWindup + stabTime + stabHold)
+            else if (moveTime >= windup + thrust + stabHold)
             {
                 move = Move.None;
             }
@@ -383,7 +456,29 @@ namespace Roguelike.Player
 
         void OnDisable()
         {
-            if (Active) SetCursorLocked(false);
+            if (!Active) return;
+            SetCursorLocked(false);
+            Weapon.RequireAttackWindow = false;
+        }
+
+        /// <summary>Shows the held weapon's special and whether it is ready, at the bottom of the screen.</summary>
+        void DrawSpecialStatus()
+        {
+            if (PlayerStamina.Exists)
+                GUI.Label(new Rect(Screen.width * 0.5f - 150f, Screen.height - 62f, 300f, 22f),
+                    "Stamina: " + Mathf.CeilToInt(PlayerStamina.Current) + " / " + Mathf.CeilToInt(PlayerStamina.Max)
+                    + (charging && chargeTime >= heavyChargeTime ? "   HEAVY" : ""));
+
+            if (rightGrabber.Held == null) return;
+            var weapon = rightGrabber.Held.GetComponent<Weapon>();
+            if (weapon == null || weapon.Special == null) return;
+
+            var special = weapon.Special;
+            string status = special.IsActive ? "ACTIVE"
+                : special.IsReady ? "ready (R)"
+                : Mathf.CeilToInt(special.CooldownRemaining) + "s";
+            GUI.Label(new Rect(Screen.width * 0.5f - 150f, Screen.height - 40f, 300f, 22f),
+                weapon.Definition.displayName + "  |  " + special.DisplayName + ": " + status);
         }
 
         void OnGUI()
@@ -393,22 +488,26 @@ namespace Roguelike.Player
             // Crosshair.
             GUI.Label(new Rect(Screen.width * 0.5f - 5f, Screen.height * 0.5f - 11f, 20f, 22f), "+");
 
+            DrawSpecialStatus();
+
             if (!showHelp)
             {
                 GUI.Label(new Rect(10f, 10f, 300f, 22f), "F1: controls");
                 return;
             }
 
-            GUI.Box(new Rect(10f, 10f, 330f, 232f), "Desktop controls (F1 to hide)");
-            GUI.Label(new Rect(20f, 34f, 310f, 200f),
+            GUI.Box(new Rect(10f, 10f, 330f, 264f), "Desktop controls (F1 to hide)");
+            GUI.Label(new Rect(20f, 34f, 310f, 232f),
                 "WASD: move    Shift: sprint\n" +
                 "Mouse: look\n" +
                 "E: pick up what you look at / draw / put away\n" +
                 "G: drop or throw\n" +
                 "Left click: swing (flick the mouse left,\n" +
                 "    right or down to choose the direction)\n" +
+                "Hold left click, then release: heavy attack\n" +
                 "Middle click or F: stab\n" +
                 "Hold right click: guard (look at the attack)\n" +
+                "R: weapon special attack\n" +
                 "Q: second hand on / off the weapon\n" +
                 "Esc: free the mouse");
         }

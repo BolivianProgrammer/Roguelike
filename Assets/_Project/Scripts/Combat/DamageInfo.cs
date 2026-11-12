@@ -17,6 +17,8 @@ namespace Roguelike.Combat
     public struct DamageInfo
     {
         public float Amount;
+        /// <summary>How hard the hit knocks the target off balance. Heavy weapons stagger more than their damage alone.</summary>
+        public float Stagger;
         public DamageType Type;
         public Vector3 Point;
         /// <summary>Direction the weapon was moving at impact, for knockback and hit reactions.</summary>

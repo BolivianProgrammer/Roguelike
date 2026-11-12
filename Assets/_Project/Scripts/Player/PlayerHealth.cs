@@ -36,6 +36,7 @@ namespace Roguelike.Player
         void Awake()
         {
             Current = maxHealth;
+            if (GetComponent<PlayerStamina>() == null) gameObject.AddComponent<PlayerStamina>();
         }
 
         void Start()

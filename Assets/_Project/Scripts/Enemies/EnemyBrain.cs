@@ -62,8 +62,11 @@ namespace Roguelike.Enemies
         [SerializeField] Vector2 timeBetweenAttacks = new Vector2(1f, 2f);
 
         [Header("Reactions")]
-        [Tooltip("Hits weaker than this do not interrupt the enemy.")]
+        [Tooltip("Hits with less stagger than this do not interrupt the enemy.")]
         [SerializeField] float flinchThreshold = 10f;
+        [Tooltip("Hits with at least this much stagger stun the enemy outright, like a parry does.")]
+        [SerializeField] float heavyStaggerThreshold = 60f;
+        [SerializeField] float heavyStun = 1.8f;
         [SerializeField] float flinchDuration = 0.7f;
         [Tooltip("After flinching, the enemy cannot be interrupted again for this long, so it cannot be stun-locked.")]
         [SerializeField] float poiseTime = 1.5f;
@@ -273,8 +276,21 @@ namespace Roguelike.Enemies
                 return;
             }
 
+            // Stagger is how hard the hit knocks the enemy off balance; plain damage if the source did not say.
+            float force = info.Stagger > 0f ? info.Stagger : info.Amount;
+
+            // A heavy enough blow stuns outright, even through the flinch protection.
+            if (force >= heavyStaggerThreshold)
+            {
+                if (weaponHitbox != null) weaponHitbox.End();
+                nextAttackTime = Time.time + heavyStun;
+                animator.CrossFadeInFixedTime("Stagger", 0.15f);
+                Enter(State.Stagger, heavyStun);
+                return;
+            }
+
             if (state == State.Idle) Enter(State.Chase);
-            if (info.Amount < flinchThreshold || Time.time < flinchImmuneUntil) return;
+            if (force < flinchThreshold || Time.time < flinchImmuneUntil) return;
 
             if (weaponHitbox != null) weaponHitbox.End();
             flinchImmuneUntil = Time.time + flinchDuration + poiseTime;

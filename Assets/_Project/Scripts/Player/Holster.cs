@@ -27,6 +27,8 @@ namespace Roguelike.Player
         RigidbodyInterpolation itemInterpolation;
 
         public Grabbable Item => item;
+        /// <summary>True for holsters worn on the player; false for fixed ones such as a weapon rack.</summary>
+        public bool OnBody => body != null;
 
         void OnEnable() => Grabbable.Dropped += OnDropped;
         void OnDisable() => Grabbable.Dropped -= OnDropped;

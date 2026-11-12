@@ -39,6 +39,7 @@ namespace Roguelike.Player
         bool heldUsedGravity;
         bool wasPressed;
 
+        InputAction specialAction;
         Grabbable pulling;
         bool pullingUsedGravity;
         Grabbable pointed;
@@ -60,8 +61,23 @@ namespace Roguelike.Player
             CreatePointer();
         }
 
+        /// <summary>Arms the special attack of the weapon in this hand, if it has one.</summary>
+        public bool ActivateHeldSpecial()
+        {
+            if (held == null) return false;
+            var weapon = held.GetComponent<Weapon>();
+            return weapon != null && weapon.ActivateSpecial();
+        }
+
         void OnEnable()
         {
+            // The trigger of this hand's controller arms the held weapon's special attack.
+            if (specialAction == null)
+            {
+                string side = hand.HandNode == UnityEngine.XR.XRNode.LeftHand ? "LeftHand" : "RightHand";
+                specialAction = new InputAction("Special", InputActionType.Button, "<XRController>{" + side + "}/{TriggerButton}");
+            }
+            specialAction.Enable();
             gripAction.action?.Enable();
             hand.Teleported += OnHandTeleported;
         }
@@ -69,6 +85,7 @@ namespace Roguelike.Player
         void OnDisable()
         {
             hand.Teleported -= OnHandTeleported;
+            specialAction?.Disable();
             StopPulling();
             Release();
             if (pointer) pointer.enabled = false;
@@ -84,6 +101,8 @@ namespace Roguelike.Player
                 Release();
             }
             wasPressed = pressed;
+
+            if (specialAction != null && specialAction.WasPressedThisFrame()) ActivateHeldSpecial();
 
             UpdatePointer(pressed);
         }
@@ -180,7 +199,9 @@ namespace Roguelike.Player
             for (int i = 0; i < all.Count; i++)
             {
                 var candidate = all[i];
-                if (!candidate.AllowDistanceGrab || candidate.IsHeld || candidate.Holster != null) continue;
+                // Items on the player's own body are drawn by hand; items on a weapon rack can be pulled.
+                if (!candidate.AllowDistanceGrab || candidate.IsHeld) continue;
+                if (candidate.Holster != null && candidate.Holster.OnBody) continue;
                 if (candidate.PulledBy != null && candidate.PulledBy != this) continue;
 
                 Vector3 toItem = candidate.Body.worldCenterOfMass - origin;
@@ -199,6 +220,7 @@ namespace Roguelike.Player
 
         void StartPulling(Grabbable target)
         {
+            target.PrepareForGrab();
             pulling = target;
             pulling.PulledBy = this;
             pullingUsedGravity = pulling.Body.useGravity;

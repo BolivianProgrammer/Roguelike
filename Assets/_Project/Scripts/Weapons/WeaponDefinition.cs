@@ -29,6 +29,19 @@ namespace Roguelike.Weapons
         [Tooltip("Seconds before the same target can be hit again by this weapon.")]
         [Min(0f)] public float hitCooldown = 0.35f;
 
+        [Tooltip("Meters the striking part must travel at swing speed before a hit counts. Stops a resting or nudged weapon " +
+                 "from doing damage. Bigger for heavy weapons that need a full swing; stabs need half of it.")]
+        [Min(0f)] public float minSwingDistance = 0.3f;
+
+        [Tooltip("Stamina each landed hit costs. 0 = work it out from the weapon's mass.")]
+        [Min(0f)] public float staminaCost = 0f;
+
+        /// <summary>Stamina a landed hit costs: the set value, or a default that grows with weight.</summary>
+        public float StaminaCost => staminaCost > 0f ? staminaCost : 4f + mass * 3.5f;
+
+        [Tooltip("How much a hit knocks enemies off balance, as a multiple of its damage. Above 1 for heavy weapons, below 1 for light ones.")]
+        [Min(0f)] public float staggerMultiplier = 1f;
+
         [Header("Hit types")]
         [Tooltip("The weapon has a cutting edge. Edge-first swings count as slashes; hits with the flat count as blunt.")]
         public bool hasEdge = true;

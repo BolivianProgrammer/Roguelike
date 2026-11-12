@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b4c1d0e6f834ad4eaef2794f7c8681e, type: 3}
+  m_Name: Dagger_Basic
+  m_EditorClassIdentifier: 
+  displayName: Dagger
+  mass: 0.4
+  baseDamage: 14
+  minHitSpeed: 1
+  fullDamageSpeed: 4
+  minDamageFraction: 0.3
+  hitCooldown: 0.2
+  staggerMultiplier: 0.5
+  hasEdge: 1
+  hasPoint: 1
+  slashMultiplier: 1
+  stabMultiplier: 1.8
+  bluntMultiplier: 0.3
+  stabSpeedFactor: 0.5
+  minSwingDistance: 0.12
