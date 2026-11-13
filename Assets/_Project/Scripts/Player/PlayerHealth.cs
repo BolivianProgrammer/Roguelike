@@ -21,11 +21,15 @@ namespace Roguelike.Player
         [SerializeField] Transform healthLabelAnchor;
 
         float invulnerableUntil;
+        float lastMax;
         float flashAlpha;
         Image flash;
         TextMesh label;
 
-        public float Max => maxHealth;
+        /// <summary>Maximum health including bonuses from buffs and gear.</summary>
+        public float Max => maxHealth * PlayerStats.Get(StatType.MaxHealth);
+        /// <summary>Seconds after dying before coming back. 0 means death is final; missions set this.</summary>
+        public float ReviveDelay { get => reviveDelay; set => reviveDelay = value; }
         public float Current { get; private set; }
         public bool IsDead { get; private set; }
 
@@ -36,11 +40,26 @@ namespace Roguelike.Player
         void Awake()
         {
             Current = maxHealth;
+            lastMax = maxHealth;
             if (GetComponent<PlayerStamina>() == null) gameObject.AddComponent<PlayerStamina>();
+        }
+
+        void OnEnable() => PlayerStats.Changed += OnStatsChanged;
+        void OnDisable() => PlayerStats.Changed -= OnStatsChanged;
+
+        /// <summary>A max-health bonus also heals by the amount gained; a penalty trims health to the new cap.</summary>
+        void OnStatsChanged()
+        {
+            float newMax = Max;
+            if (newMax > lastMax && !IsDead) Current += newMax - lastMax;
+            Current = Mathf.Min(Current, newMax);
+            lastMax = newMax;
+            RefreshLabel();
         }
 
         void Start()
         {
+            lastMax = Max;
             if (head == null && Camera.main != null) head = Camera.main.transform;
             if (head != null) CreateFlash();
             if (healthLabelAnchor != null) CreateLabel();
@@ -64,7 +83,7 @@ namespace Roguelike.Player
         public void Heal(float amount)
         {
             if (IsDead) return;
-            Current = Mathf.Min(maxHealth, Current + amount);
+            Current = Mathf.Min(Max, Current + amount);
             RefreshLabel();
         }
 
@@ -79,7 +98,7 @@ namespace Roguelike.Player
         public void Revive()
         {
             IsDead = false;
-            Current = maxHealth;
+            Current = Max;
             RefreshLabel();
             Revived?.Invoke();
         }
@@ -149,7 +168,7 @@ namespace Roguelike.Player
         {
             if (label == null) return;
             label.text = Mathf.CeilToInt(Current).ToString();
-            label.color = Color.Lerp(new Color(1f, 0.25f, 0.2f), new Color(0.4f, 1f, 0.5f), Current / maxHealth);
+            label.color = Color.Lerp(new Color(1f, 0.25f, 0.2f), new Color(0.4f, 1f, 0.5f), Current / Mathf.Max(1f, Max));
         }
     }
 }

@@ -14,6 +14,18 @@ namespace Roguelike.Enemies
         [SerializeField] float headMultiplier = 2f;
         [SerializeField] float limbMultiplier = 0.7f;
         [SerializeField] bool showDamageNumbers = true;
+        [Tooltip("Bosses turn this off: a finisher blow then only does its normal damage.")]
+        [SerializeField] bool canBeFinished = true;
+
+        [Header("Dropped on death")]
+        [SerializeField] int essenceReward = 10;
+        [SerializeField] int coinReward = 5;
+
+        public int EssenceReward => essenceReward;
+        public int CoinReward => coinReward;
+
+        /// <summary>Raised whenever any enemy dies, for kill counts, loot and mission progress.</summary>
+        public static event Action<EnemyHealth, DamageInfo> AnyDied;
 
         public float Max => maxHealth;
         public float Current { get; private set; }
@@ -79,7 +91,7 @@ namespace Roguelike.Enemies
             else if (zone == HitZoneType.Limb) info.Amount *= limbMultiplier;
 
             bool finisherBlow = zone == HitZoneType.Head || zone == HitZoneType.Torso && info.Type == DamageType.Stab;
-            if (finisherBlow && CanBeExecuted != null && CanBeExecuted())
+            if (canBeFinished && finisherBlow && CanBeExecuted != null && CanBeExecuted())
             {
                 info.Execution = true;
                 info.Amount = Mathf.Max(info.Amount, Current);
@@ -115,6 +127,7 @@ namespace Roguelike.Enemies
         {
             IsDead = true;
             Died?.Invoke(info);
+            AnyDied?.Invoke(this, info);
         }
     }
 }

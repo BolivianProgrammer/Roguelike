@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 using Roguelike.Combat;
 using Roguelike.Player;
 
@@ -20,6 +21,8 @@ namespace Roguelike.Enemies
         public float hitEnd = 0.8f;
         public float damage = 15f;
         public DamageType damageType = DamageType.Slash;
+        [Tooltip("A thrown bolt instead of a weapon swing. It leaves the hand at Hit Start; Damage is what the bolt does.")]
+        public bool ranged;
     }
 
     /// <summary>
@@ -61,6 +64,18 @@ namespace Roguelike.Enemies
         [SerializeField] float attackRange = 1.6f;
         [SerializeField] Vector2 timeBetweenAttacks = new Vector2(1f, 2f);
 
+        [Header("Ranged")]
+        [Tooltip("A ranged enemy keeps its distance and throws bolts instead of closing in.")]
+        [SerializeField] bool isRanged;
+        [Tooltip("Where bolts appear: normally the throwing hand.")]
+        [SerializeField] Transform muzzle;
+        [Tooltip("A ranged enemy stops advancing at this distance from the player.")]
+        [SerializeField] float rangedStopDistance = 9f;
+        [Tooltip("A ranged enemy attacks from up to this far away.")]
+        [SerializeField] float rangedAttackRange = 13f;
+        [Tooltip("Meters per second. Slow enough to see, block and bat back.")]
+        [SerializeField] float boltSpeed = 9f;
+
         [Header("Reactions")]
         [Tooltip("Hits with less stagger than this do not interrupt the enemy.")]
         [SerializeField] float flinchThreshold = 10f;
@@ -96,6 +111,10 @@ namespace Roguelike.Enemies
         float nextAttackTime;
         float flinchImmuneUntil;
         bool disarmed;
+        NavMeshAgent agent;
+        float nextPathTime;
+        readonly RaycastHit[] sightHits = new RaycastHit[16];
+        Projectile heldBolt;
         Transform headBone;
         GameObject executeMarker;
         float resumeStaggerAt;
@@ -136,6 +155,48 @@ namespace Roguelike.Enemies
         void Start()
         {
             target = FindObjectOfType<PlayerHealth>();
+            SetUpPathfinding();
+        }
+
+        /// <summary>
+        /// If the level has worked out its walkable area, walk on it: around walls and other enemies.
+        /// Without one (a bare test scene) the enemy falls back to walking straight at the player.
+        /// </summary>
+        void SetUpPathfinding()
+        {
+            if (!LevelNavMesh.Ready) return;
+            if (!NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 3f, NavMesh.AllAreas)) return;
+
+            transform.position = hit.position;
+            agent = gameObject.AddComponent<NavMeshAgent>();
+            agent.radius = 0.35f;
+            agent.height = 1.8f;
+            agent.acceleration = 14f;
+            agent.angularSpeed = 0f;
+            agent.updateRotation = false;
+            agent.stoppingDistance = 0f;
+            agent.autoBraking = false;
+            agent.avoidancePriority = UnityEngine.Random.Range(30, 70);
+        }
+
+        bool Pathfinding => agent != null && agent.enabled && agent.isOnNavMesh;
+
+        /// <summary>True if nothing solid stands between this enemy's head and the player's chest.</summary>
+        bool HasLineOfSight()
+        {
+            if (target == null) return false;
+            Vector3 from = headBone != null ? headBone.position : transform.position + Vector3.up * 1.5f;
+            Vector3 to = target.transform.position + Vector3.up * 1.2f;
+            Vector3 offset = to - from;
+
+            int count = Physics.RaycastNonAlloc(from, offset.normalized, sightHits, offset.magnitude, ~0, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < count; i++)
+            {
+                Collider c = sightHits[i].collider;
+                // Only the level itself blocks sight: not bodies, weapons or the player.
+                if (c.attachedRigidbody == null && !(c is CharacterController)) return false;
+            }
+            return true;
         }
 
         void Update()
@@ -162,10 +223,18 @@ namespace Roguelike.Enemies
                         Enter(State.Idle);
                         break;
                     }
-                    Face(toTarget, turnSpeed);
-                    if (distance > stopDistance)
+                    // A ranged enemy with a wall in the way keeps coming until it can see the player.
+                    bool canSee = !isRanged || HasLineOfSight();
+                    float stop = !isRanged ? stopDistance : canSee ? rangedStopDistance : 1.5f;
+                    if (distance > stop)
                         desiredSpeed = distance > runDistance ? runSpeed : walkSpeed;
-                    if (!disarmed && distance <= attackRange && Time.time >= nextAttackTime && Vector3.Angle(transform.forward, toTarget) < 25f)
+
+                    // Look where it is walking while it paths around things; look at the player once it stops.
+                    Vector3 heading = Pathfinding && desiredSpeed > 0f ? agent.desiredVelocity : Vector3.zero;
+                    heading.y = 0f;
+                    Face(heading.sqrMagnitude > 0.05f ? heading : toTarget, turnSpeed);
+
+                    if (!disarmed && canSee && distance <= (isRanged ? rangedAttackRange : attackRange) && Time.time >= nextAttackTime && Vector3.Angle(transform.forward, toTarget) < 25f)
                         StartAttack();
                     break;
 
@@ -176,12 +245,18 @@ namespace Roguelike.Enemies
                     if (!hitOpened && stateTime >= attack.hitStart)
                     {
                         hitOpened = true;
-                        weaponHitbox.Begin(attack.damage, attack.damageType);
+                        if (attack.ranged)
+                        {
+                            // The bolt leaves the hand.
+                            if (heldBolt != null) heldBolt.Launch();
+                            heldBolt = null;
+                        }
+                        else if (weaponHitbox != null) weaponHitbox.Begin(attack.damage, attack.damageType);
                     }
                     if (hitOpened && !hitClosed && stateTime >= attack.hitEnd)
                     {
                         hitClosed = true;
-                        weaponHitbox.End();
+                        if (weaponHitbox != null) weaponHitbox.End();
                     }
                     if (stateTime >= attack.duration) FinishAttack();
                     break;
@@ -201,12 +276,36 @@ namespace Roguelike.Enemies
                     break;
             }
 
-            Move(desiredSpeed);
+            Move(desiredSpeed, hasTarget ? target.transform.position : transform.position);
             PlaceExecuteMarker();
         }
 
-        void Move(float desiredSpeed)
+        void Move(float desiredSpeed, Vector3 destination)
         {
+            if (Pathfinding)
+            {
+                if (desiredSpeed > 0.01f)
+                {
+                    agent.isStopped = false;
+                    agent.speed = desiredSpeed;
+                    // Paths are refreshed a few times a second, not every frame.
+                    if (Time.time >= nextPathTime)
+                    {
+                        nextPathTime = Time.time + 0.2f;
+                        agent.SetDestination(destination);
+                    }
+                }
+                else
+                {
+                    agent.isStopped = true;
+                    agent.velocity = Vector3.MoveTowards(agent.velocity, Vector3.zero, 20f * Time.deltaTime);
+                }
+
+                speed = agent.velocity.magnitude;
+                animator.SetFloat(SpeedId, speed, 0.1f, Time.deltaTime);
+                return;
+            }
+
             speed = Mathf.MoveTowards(speed, desiredSpeed, 8f * Time.deltaTime);
             Vector3 step = transform.forward * (speed * Time.deltaTime);
 
@@ -235,9 +334,15 @@ namespace Roguelike.Enemies
 
         void StartAttack()
         {
-            if (attacks == null || attacks.Length == 0 || weaponHitbox == null) return;
+            if (attacks == null || attacks.Length == 0) return;
 
-            attack = attacks[attackIndex++ % attacks.Length];
+            EnemyAttack next = attacks[attackIndex % attacks.Length];
+            if (next.ranged ? muzzle == null : weaponHitbox == null) return;
+            attackIndex++;
+            attack = next;
+
+            // A bolt gathers in the hand during the wind-up, which is the player's warning.
+            if (attack.ranged) heldBolt = Projectile.Spawn(muzzle, transform, boltSpeed, attack.damage);
             hitOpened = false;
             hitClosed = false;
             animator.CrossFadeInFixedTime(attack.stateName, 0.1f);
@@ -246,7 +351,7 @@ namespace Roguelike.Enemies
 
         void FinishAttack()
         {
-            weaponHitbox.End();
+            if (weaponHitbox != null) weaponHitbox.End();
             nextAttackTime = Time.time + UnityEngine.Random.Range(timeBetweenAttacks.x, timeBetweenAttacks.y);
             animator.CrossFadeInFixedTime("Locomotion", 0.2f);
             Enter(State.Chase);
@@ -315,6 +420,7 @@ namespace Roguelike.Enemies
         void OnDied(DamageInfo info)
         {
             Enter(State.Dead);
+            if (agent != null) agent.enabled = false;
             SetExecuteMarker(false);
             Disarm();
 
@@ -337,7 +443,9 @@ namespace Roguelike.Enemies
         /// <summary>True if the enemy's weapon is held by the given bone or anything below it (e.g. its sword arm).</summary>
         public bool HoldsWeaponUnder(Transform bone)
         {
-            return !disarmed && weaponVisual != null && weaponVisual.IsChildOf(bone);
+            if (disarmed) return false;
+            if (isRanged) return muzzle != null && muzzle.IsChildOf(bone);
+            return weaponVisual != null && weaponVisual.IsChildOf(bone);
         }
 
         /// <summary>The weapon falls out of the enemy's hand as a plain physics object. It cannot attack afterwards.</summary>
@@ -402,6 +510,12 @@ namespace Roguelike.Enemies
         void Enter(State next, float duration = 0f)
         {
             SetExecuteMarker(next == State.Stagger);
+            // Interrupted mid wind-up: the bolt never leaves the hand.
+            if (next != State.Attack && heldBolt != null)
+            {
+                heldBolt.Fizzle();
+                heldBolt = null;
+            }
             state = next;
             resumeStaggerAt = 0f;
             stateTime = 0f;

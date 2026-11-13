@@ -29,6 +29,8 @@ namespace Roguelike.Enemies
         [SerializeField] float headHealth = 40f;
         [SerializeField] float armHealth = 30f;
         [SerializeField] float legHealth = 45f;
+        [Tooltip("Slash damage the torso takes before the body is cut in two. Only slashes count: hammers and stabs cannot do it.")]
+        [SerializeField] float torsoHealth = 75f;
         [Tooltip("Parts of a dead body come off this much more easily.")]
         [SerializeField, Range(0.1f, 1f)] float corpseFactor = 0.5f;
         [Tooltip("Hits weaker than this do not count towards cutting a part off.")]
@@ -50,11 +52,23 @@ namespace Roguelike.Enemies
         EnemyHealth health;
         EnemyBrain brain;
         bool bleeding;
+        float torsoWound;
+        Transform waistBone;
+        Transform chestBone;
 
         void Awake()
         {
             health = GetComponent<EnemyHealth>();
             brain = GetComponent<EnemyBrain>();
+
+            // The torso can be cut at two heights: the waist, and under the ribs.
+            var animator = GetComponent<Animator>();
+            if (animator != null && animator.isHuman)
+            {
+                waistBone = animator.GetBoneTransform(HumanBodyBones.Spine);
+                chestBone = animator.GetBoneTransform(HumanBodyBones.UpperChest);
+                if (chestBone == null) chestBone = animator.GetBoneTransform(HumanBodyBones.Chest);
+            }
         }
 
         void OnEnable() => health.Struck += OnStruck;
@@ -73,12 +87,18 @@ namespace Roguelike.Enemies
         {
             if (info.HitCollider == null) return;
             var zone = info.HitCollider.GetComponent<HitZone>();
-            if (zone == null || zone.part == BodyPart.Torso) return;
+            if (zone == null) return;
+
+            if (zone.part == BodyPart.Torso)
+            {
+                StrikeTorso(info);
+                return;
+            }
 
             // A finisher to the head always takes it off.
             if (info.Execution && zone.part == BodyPart.Head)
             {
-                Sever(zone, info);
+                Sever(zone.transform, zone.part, info);
                 return;
             }
 
@@ -94,37 +114,70 @@ namespace Roguelike.Enemies
                 : legHealth;
             if (health.IsDead) limit *= corpseFactor;
 
-            if (wound >= limit) Sever(zone, info);
+            if (wound >= limit) Sever(zone.transform, zone.part, info);
         }
 
-        void Sever(HitZone zone, DamageInfo info)
+        /// <summary>
+        /// Slashes across the body add up until it is cut in two, at the waist or under the ribs depending on
+        /// how high the deciding blow landed.
+        /// </summary>
+        void StrikeTorso(DamageInfo info)
         {
-            Transform bone = zone.transform;
+            if (waistBone == null || info.Type != DamageType.Slash || info.Amount < minimumHit) return;
+            if (severedBones.Contains(waistBone) || (chestBone != null && severedBones.Contains(chestBone))) return;
+
+            torsoWound += info.Amount;
+            float limit = health.IsDead ? torsoHealth * corpseFactor : torsoHealth;
+            if (torsoWound < limit) return;
+
+            bool high = chestBone != null && chestBone != waistBone && info.Point.y >= chestBone.position.y;
+            Sever(high ? chestBone : waistBone, BodyPart.Torso, info);
+        }
+
+        void Sever(Transform bone, BodyPart part, DamageInfo info)
+        {
             if (severedBones.Contains(bone)) return;
-            EnemyHealth.LastHit += "  ->  SEVERED";
+            bool torso = part == BodyPart.Torso;
+            EnemyHealth.LastHit += torso ? "  ->  CUT IN HALF" : "  ->  SEVERED";
 
             // Losing the weapon arm means losing the weapon.
             if (brain != null && brain.HoldsWeaponUnder(bone)) brain.Disarm();
 
             // A crushed head just bursts; anything else leaves a piece behind.
-            bool crushed = zone.part == BodyPart.Head && info.Type == DamageType.Blunt;
+            bool crushed = part == BodyPart.Head && info.Type == DamageType.Blunt;
             if (!crushed) SpawnPiece(bone, info);
 
             Vector3 stump = bone.position;
             Vector3 outward = bone.parent != null ? (bone.position - bone.parent.position).normalized : Vector3.up;
 
             RemovePhysics(bone);
+            if (torso) TrimTorsoCollider(bone);
             severedBones.Add(bone);
             bone.localScale = Vector3.one * Collapsed;
 
-            BloodFx.Burst(stump, (outward + info.Direction * 0.5f).normalized, crushed ? 90 : 45);
+            BloodFx.Burst(stump, (outward + info.Direction * 0.5f).normalized, crushed || torso ? 110 : 45);
             if (bone.parent != null) BloodFx.Stream(bone.parent, stump, outward);
 
             if (health.IsDead) return;
 
-            // Nobody fights on without a head or a leg. Without an arm they do, but they bleed out.
-            if (zone.part == BodyPart.LeftArm || zone.part == BodyPart.RightArm) bleeding = true;
+            // Nobody fights on without a head, a leg or the top half of their body. Without an arm they do, but they bleed out.
+            if (part == BodyPart.LeftArm || part == BodyPart.RightArm) bleeding = true;
             else health.Kill(info);
+        }
+
+        /// <summary>
+        /// After a cut under the ribs, the belly keeps its collision shape, which used to reach up to the neck.
+        /// Shorten it so nothing invisible is left standing above the cut.
+        /// </summary>
+        void TrimTorsoCollider(Transform cutBone)
+        {
+            if (waistBone == null || cutBone == waistBone) return;
+            var capsule = waistBone.GetComponent<CapsuleCollider>();
+            if (capsule == null) return;
+
+            Vector3 top = waistBone.InverseTransformPoint(cutBone.position);
+            capsule.center = top * 0.5f;
+            capsule.height = Mathf.Max(top.magnitude, capsule.radius * 2f);
         }
 
         /// <summary>Strips the colliders, joints and rigidbodies from a bone and everything below it.</summary>
@@ -143,6 +196,7 @@ namespace Roguelike.Enemies
 
             GameObject piece = Instantiate(limbModel, transform.position, transform.rotation);
             piece.name = bone.name + " (severed)";
+            piece.transform.localScale = transform.localScale;
             var animator = piece.GetComponent<Animator>();
             if (animator != null) animator.enabled = false;
 
@@ -193,8 +247,16 @@ namespace Roguelike.Enemies
                 }
             }
 
+            // A piece cut off above the waist has no torso shape of its own to copy, so give it one.
+            if (bone.GetComponent<Collider>() == null && bone.GetComponentInParent<HitZone>() != null && bone != waistBone && bone == chestBone)
+            {
+                var chest = pieceBone.gameObject.AddComponent<SphereCollider>();
+                chest.radius = 0.17f / Mathf.Max(0.0001f, pieceBone.lossyScale.x);
+                chest.center = pieceBone.InverseTransformVector(Vector3.up * 0.1f);
+            }
+
             var body = piece.AddComponent<Rigidbody>();
-            body.mass = 3f;
+            body.mass = bone == waistBone || bone == chestBone ? 25f : 3f;
             body.velocity = info.Direction * Mathf.Clamp(info.ImpactSpeed, 1f, 6f) * 0.5f + Vector3.up * 1.5f;
             body.angularVelocity = Random.insideUnitSphere * 6f;
 

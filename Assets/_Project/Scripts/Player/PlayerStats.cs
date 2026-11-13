@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.XR.Interaction.Toolkit.Locomotion.Movement;
 
 namespace Roguelike.Player
 {
@@ -11,7 +12,11 @@ namespace Roguelike.Player
         /// <summary>Multiplies the player's maximum health.</summary>
         MaxHealth,
         /// <summary>Multiplies how fast the player moves.</summary>
-        MoveSpeed
+        MoveSpeed,
+        /// <summary>Multiplies the player's maximum stamina.</summary>
+        MaxStamina,
+        /// <summary>Multiplies how fast stamina refills.</summary>
+        StaminaRegen
     }
 
     /// <summary>
@@ -37,8 +42,26 @@ namespace Roguelike.Player
 
         void Awake() => instance = this;
 
+        ContinuousMoveProvider moveProvider;
+        float baseMoveSpeed;
+
+        void Start()
+        {
+            // Stick movement in the headset reads its speed from here. (Desktop movement asks for the stat directly.)
+            moveProvider = FindObjectOfType<ContinuousMoveProvider>();
+            if (moveProvider != null) baseMoveSpeed = moveProvider.moveSpeed;
+            Changed += ApplyMoveSpeed;
+        }
+
+        void ApplyMoveSpeed()
+        {
+            if (moveProvider != null) moveProvider.moveSpeed = baseMoveSpeed * Get(StatType.MoveSpeed);
+        }
+
+
         void OnDestroy()
         {
+            Changed -= ApplyMoveSpeed;
             if (instance == this) instance = null;
         }
 

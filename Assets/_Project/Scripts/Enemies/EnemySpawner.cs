@@ -15,10 +15,16 @@ namespace Roguelike.Enemies
         [SerializeField, Min(0)] int maxAlive = 1;
         [Tooltip("Seconds between an enemy dying and its replacement appearing.")]
         [SerializeField] float respawnDelay = 4f;
+        [Tooltip("How many enemies this spawner produces in total. 0 = keep replacing them forever.")]
+        [SerializeField, Min(0)] int totalSpawns = 0;
+        [Tooltip("The spawner stays asleep until the player comes within this distance (meters). 0 = active from the start.")]
+        [SerializeField] float activationRange = 0f;
 
         readonly List<EnemyHealth> alive = new List<EnemyHealth>();
         float nextSpawnTime;
         int nextPoint;
+        int spawned;
+        bool awake;
 
         void Update()
         {
@@ -29,12 +35,21 @@ namespace Roguelike.Enemies
                 nextSpawnTime = Mathf.Max(nextSpawnTime, Time.time + respawnDelay);
             }
 
+            if (!awake)
+            {
+                var cam = Camera.main;
+                if (activationRange > 0f && (cam == null || Vector3.Distance(cam.transform.position, transform.position) > activationRange)) return;
+                awake = true;
+            }
+
+            if (totalSpawns > 0 && spawned >= totalSpawns) return;
             if (enemyPrefab == null || alive.Count >= maxAlive || Time.time < nextSpawnTime) return;
 
             Transform point = spawnPoints != null && spawnPoints.Length > 0 ? spawnPoints[nextPoint++ % spawnPoints.Length] : transform;
             GameObject enemy = Instantiate(enemyPrefab, point.position, point.rotation);
             var health = enemy.GetComponent<EnemyHealth>();
             if (health != null) alive.Add(health);
+            spawned++;
             nextSpawnTime = Time.time + 0.5f;
         }
     }

@@ -22,7 +22,7 @@ namespace Roguelike.Player
         float lastUseTime = -10f;
 
         public static float Current => instance != null ? instance.current : 0f;
-        public static float Max => instance != null ? instance.max : 0f;
+        public static float Max => instance != null ? instance.max * PlayerStats.Get(StatType.MaxStamina) : 0f;
         /// <summary>True when a player with stamina exists. Without one, nothing costs stamina.</summary>
         public static bool Exists => instance != null;
 
@@ -40,14 +40,14 @@ namespace Roguelike.Player
         void Update()
         {
             if (Time.time - lastUseTime >= regenDelay)
-                current = Mathf.Min(max, current + regenPerSecond * Time.deltaTime);
+                current = Mathf.Min(Max, current + regenPerSecond * PlayerStats.Get(StatType.StaminaRegen) * Time.deltaTime);
         }
 
         /// <summary>Gives stamina back at once, e.g. as a reward for a finisher.</summary>
         public static void Restore(float amount)
         {
             if (instance == null) return;
-            instance.current = Mathf.Min(instance.max, instance.current + amount);
+            instance.current = Mathf.Min(Max, instance.current + amount);
         }
 
         /// <summary>True if at least this much stamina is available, without spending it.</summary>
