@@ -113,8 +113,12 @@ InitTestScene*.unity*
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
 
-# Local copy of Meta XR Core SDK (141 MB, over GitHub limit)
-/Packages/LocalTarballs/
+# Ignore other local packages; retain the SDK required by manifest.json via LFS.
+/Packages/LocalTarballs/*
+!/Packages/LocalTarballs/com.meta.xr.sdk.core-201.0.0.tgz
 
 # Player build output (APKs, Burst debug symbols)
 /Builds/
+
+# Burst debug symbols written next to Android builds
+/*_BurstDebugInformation_DoNotShip/

@@ -19,6 +19,10 @@ namespace Roguelike.Run
         [Tooltip("How close (meters) a hand must be to the totem's center line to count as touching it.")]
         [SerializeField] float touchRadius = 0.6f;
         [SerializeField] Renderer body;
+        [Tooltip("Optional: what is left once it falls (a broken stump with loose chunks). Hidden until then; its rigidbodies are thrown outward.")]
+        [SerializeField] GameObject remains;
+        [Tooltip("Optional: the totem's own glow, dimmed as it dies.")]
+        [SerializeField] Light glow;
         [SerializeField] Color idleColor = new Color(0.5f, 0.2f, 0.8f);
         [SerializeField] Color channelColor = new Color(1f, 0.9f, 0.4f);
 
@@ -38,6 +42,7 @@ namespace Roguelike.Run
             propertyBlock = new MaterialPropertyBlock();
             startScale = transform.localScale;
             SetColor(idleColor);
+            if (remains != null) remains.SetActive(false);
         }
 
         void Start()
@@ -102,11 +107,23 @@ namespace Roguelike.Run
             float t = Mathf.Clamp01(collapse / 0.8f);
             transform.Rotate(0f, 900f * Time.deltaTime, 0f);
             transform.localScale = startScale * (1f - t * t);
+            if (glow != null) glow.intensity *= 1f - Mathf.Clamp01(Time.deltaTime * 4f);
             if (t >= 1f)
             {
                 collapse = -1f;
+                ShowRemains();
                 gameObject.SetActive(false);
             }
+        }
+
+        /// <summary>The broken stump appears where the totem stood and its chunks burst outward.</summary>
+        void ShowRemains()
+        {
+            if (remains == null) return;
+            remains.SetActive(true);
+            Vector3 centre = remains.transform.position + Vector3.up * 0.3f;
+            foreach (var chunk in remains.GetComponentsInChildren<Rigidbody>())
+                chunk.AddExplosionForce(4f, centre, 2f, 0.6f, ForceMode.VelocityChange);
         }
 
         void SetColor(Color color)

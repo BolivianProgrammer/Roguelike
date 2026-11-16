@@ -17,6 +17,10 @@ namespace Roguelike.Run
         [SerializeField] float openTime = 6f;
         [Tooltip("Seconds it takes once the level is complete.")]
         [SerializeField] float openTimeAfterVictory = 2f;
+        [Tooltip("Shown with a countdown while the player stands in the zone.")]
+        [SerializeField] string openingText = "Portal opening...";
+        [Tooltip("Shown if the player steps out early.")]
+        [SerializeField] string cancelledText = "Extraction cancelled";
         [SerializeField] Renderer ring;
         [SerializeField] Color idleColor = new Color(0.1f, 0.5f, 0.6f);
         [SerializeField] Color openColor = new Color(0.3f, 1f, 0.9f);
@@ -36,7 +40,17 @@ namespace Roguelike.Run
         void Awake()
         {
             propertyBlock = new MaterialPropertyBlock();
+            if (ring == null) ring = GetComponent<Renderer>();
             SetColor(idleColor);
+        }
+
+        /// <summary>Sets the zone up from code, for portals made at runtime.</summary>
+        public void Configure(float zoneRadius, float secondsToOpen, string opening, string cancelled)
+        {
+            radius = zoneRadius;
+            openTime = secondsToOpen;
+            openingText = opening;
+            cancelledText = cancelled;
         }
 
         void Start()
@@ -55,7 +69,7 @@ namespace Roguelike.Run
 
             if (!inside)
             {
-                if (progress > 0f) Announcer.Show("Extraction cancelled", new Color(1f, 0.6f, 0.3f), 1.5f);
+                if (progress > 0f) Announcer.Show(cancelledText, new Color(1f, 0.6f, 0.3f), 1.5f);
                 progress = 0f;
                 lastSecond = -1;
                 SetColor(idleColor);
@@ -69,12 +83,18 @@ namespace Roguelike.Run
             if (secondsLeft != lastSecond && secondsLeft > 0)
             {
                 lastSecond = secondsLeft;
-                Announcer.Show("Portal opening... " + secondsLeft, openColor, 1.2f);
+                Announcer.Show(openingText + " " + secondsLeft, openColor, 1.2f);
             }
+
+            // A shimmer rises from the ring while it opens.
+            if (UnityEngine.Random.value < Time.deltaTime * 12f)
+                Combat.HitSpark.Spawn(transform.position + UnityEngine.Random.insideUnitSphere * radius * 0.8f + Vector3.up * 0.1f, Vector3.up, openColor, 2, 1.5f, 0.04f);
 
             if (progress >= needed)
             {
                 used = true;
+                Combat.HitSpark.Ring(transform.position, openColor, radius, 50);
+                Audio.Sfx.Play(Audio.SfxKind.PortalOpen, transform.position + Vector3.up);
                 Extracted?.Invoke();
             }
         }
@@ -84,6 +104,7 @@ namespace Roguelike.Run
             if (ring == null) return;
             ring.GetPropertyBlock(propertyBlock);
             propertyBlock.SetColor(BaseColorId, color);
+            propertyBlock.SetColor("_Color", color);
             ring.SetPropertyBlock(propertyBlock);
         }
 

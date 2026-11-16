@@ -42,9 +42,6 @@ namespace Roguelike.Weapons
         /// <summary>The holster this item is stored in, if any.</summary>
         public Holster Holster { get; set; }
 
-        public event Action<PhysicsHandGrabber> Grabbed;
-        public event Action<PhysicsHandGrabber> Released;
-
         void Awake()
         {
             Body = GetComponent<Rigidbody>();
@@ -52,6 +49,9 @@ namespace Roguelike.Weapons
             Body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
             Body.solverIterations = 20;
             Body.solverVelocityIterations = 10;
+            // Unity caps spin at 7 rad/s by default; a wrist flick with a dagger goes far beyond that, and a capped
+            // item lags and stutters behind the hand (which allows 50). Match the hand.
+            Body.maxAngularVelocity = 50f;
             Colliders = GetComponentsInChildren<Collider>();
         }
 
@@ -132,14 +132,12 @@ namespace Roguelike.Weapons
         {
             holders.Add(grabber);
             RefreshHolders();
-            Grabbed?.Invoke(grabber);
         }
 
         internal void NotifyReleased(PhysicsHandGrabber grabber)
         {
             holders.Remove(grabber);
             RefreshHolders();
-            Released?.Invoke(grabber);
             if (holders.Count == 0) Dropped?.Invoke(this, grabber);
         }
 

@@ -19,6 +19,10 @@ namespace Roguelike.Enemies
         [SerializeField, Min(0)] int totalSpawns = 0;
         [Tooltip("The spawner stays asleep until the player comes within this distance (meters). 0 = active from the start.")]
         [SerializeField] float activationRange = 0f;
+        [Tooltip("Spawned enemies start unaware (weapon lowered) and notice the player when they come close.")]
+        [SerializeField] bool spawnUnaware = true;
+        [Tooltip("A spawner of Grunts sometimes sends a Runner, Shieldbearer or Elite instead (more often on harder missions).")]
+        [SerializeField] bool mixVariants = true;
 
         readonly List<EnemyHealth> alive = new List<EnemyHealth>();
         float nextSpawnTime;
@@ -46,7 +50,19 @@ namespace Roguelike.Enemies
             if (enemyPrefab == null || alive.Count >= maxAlive || Time.time < nextSpawnTime) return;
 
             Transform point = spawnPoints != null && spawnPoints.Length > 0 ? spawnPoints[nextPoint++ % spawnPoints.Length] : transform;
-            GameObject enemy = Instantiate(enemyPrefab, point.position, point.rotation);
+            GameObject prefab = enemyPrefab;
+            var assets = Meta.GameAssets.Instance;
+            if (mixVariants && assets != null && prefab == assets.grunt)
+            {
+                var mission = Run.MissionManager.Current;
+                int tier = mission != null && mission.Definition != null ? mission.Definition.tier : 0;
+                GameObject variant = assets.RandomMelee(tier);
+                if (variant != null) prefab = variant;
+            }
+            GameObject enemy = Instantiate(prefab, point.position, point.rotation);
+            var brain = enemy.GetComponent<EnemyBrain>();
+            // The first enemies at a post have not seen the player yet; replacements arrive alert.
+            if (brain != null && spawnUnaware && spawned < maxAlive) brain.SetUnaware(true);
             var health = enemy.GetComponent<EnemyHealth>();
             if (health != null) alive.Add(health);
             spawned++;

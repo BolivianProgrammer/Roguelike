@@ -15,6 +15,7 @@ MonoBehaviour:
   displayName: Glass Cannon
   description: +50% damage, -20% max health
   color: {r: 1, g: 0.4, b: 0.9, a: 1}
+  rarity: 1
   effects:
   - stat: 0
     percent: 0.5

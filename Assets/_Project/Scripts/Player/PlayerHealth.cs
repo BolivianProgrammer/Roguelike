@@ -13,8 +13,6 @@ namespace Roguelike.Player
         [SerializeField] float maxHealth = 100f;
         [Tooltip("Seconds after a hit during which further hits are ignored.")]
         [SerializeField] float invulnerabilityTime = 0.4f;
-        [Tooltip("Test-scene behaviour: come back at full health this many seconds after dying. 0 = stay dead.")]
-        [SerializeField] float reviveDelay = 2f;
         [SerializeField] Transform head;
         [SerializeField] PhysicsHand[] hands;
         [Tooltip("Optional: a health number is shown at this transform, e.g. on the back of the left hand.")]
@@ -24,21 +22,20 @@ namespace Roguelike.Player
         float lastMax;
         float flashAlpha;
         Image flash;
-        TextMesh label;
+        TMPro.TextMeshPro label;
+        int shownHealth = -1;
 
         /// <summary>Maximum health including bonuses from buffs and gear.</summary>
         public float Max => maxHealth * PlayerStats.Get(StatType.MaxHealth);
-        /// <summary>Seconds after dying before coming back. 0 means death is final; missions set this.</summary>
-        public float ReviveDelay { get => reviveDelay; set => reviveDelay = value; }
         public float Current { get; private set; }
         public bool IsDead { get; private set; }
 
         public event Action<DamageInfo> Damaged;
         public event Action Died;
-        public event Action Revived;
 
         void Awake()
         {
+            Instance = this;
             Current = maxHealth;
             lastMax = maxHealth;
             if (GetComponent<PlayerStamina>() == null) gameObject.AddComponent<PlayerStamina>();
@@ -66,14 +63,34 @@ namespace Roguelike.Player
             RefreshLabel();
         }
 
+        /// <summary>The player in the current scene.</summary>
+        public static PlayerHealth Instance { get; private set; }
+
+        /// <summary>Damage taken this run, for the end-of-run summary.</summary>
+        public float DamageTakenTotal { get; private set; }
+
         public void TakeDamage(DamageInfo info)
         {
             if (IsDead || Time.time < invulnerableUntil || info.Amount <= 0f) return;
 
-            invulnerableUntil = Time.time + invulnerabilityTime;
+            // Armor and trinkets make the player tougher (or frailer).
+            info.Amount *= PlayerStats.Get(StatType.DamageTaken);
             Current = Mathf.Max(0f, Current - info.Amount);
-            flashAlpha = 0.55f;
-            Haptic(1f, 0.2f);
+            DamageTakenTotal += info.Amount;
+            if (info.Blocked)
+            {
+                // Chip damage through a block: a sting, not a wound. No hurt sound (the block already made one) and
+                // no immunity window, so a follow-up blow that gets past the guard still lands.
+                flashAlpha = Mathf.Max(flashAlpha, 0.2f);
+                Haptic(0.4f, 0.08f);
+            }
+            else
+            {
+                invulnerableUntil = Time.time + invulnerabilityTime;
+                flashAlpha = 0.55f;
+                Haptic(1f, 0.2f);
+                Audio.Sfx.Play(Audio.SfxKind.PlayerHurt, head != null ? head.position : transform.position + Vector3.up * 1.5f);
+            }
             RefreshLabel();
             Damaged?.Invoke(info);
 
@@ -87,20 +104,17 @@ namespace Roguelike.Player
             RefreshLabel();
         }
 
+        void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
+        }
+
         void Die()
         {
             IsDead = true;
+            Audio.Sfx.Play(Audio.SfxKind.PlayerDeath, head != null ? head.position : transform.position);
             Died?.Invoke();
             Debug.Log("[Player] Died");
-            if (reviveDelay > 0f) Invoke(nameof(Revive), reviveDelay);
-        }
-
-        public void Revive()
-        {
-            IsDead = false;
-            Current = Max;
-            RefreshLabel();
-            Revived?.Invoke();
         }
 
         void Update()
@@ -151,23 +165,19 @@ namespace Roguelike.Player
 
         void CreateLabel()
         {
-            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            var go = new GameObject("Health Label");
-            go.transform.SetParent(healthLabelAnchor, false);
-
-            label = go.AddComponent<TextMesh>();
-            label.font = font;
-            label.fontSize = 64;
-            label.characterSize = 0.004f;
-            label.anchor = TextAnchor.MiddleCenter;
-            label.alignment = TextAlignment.Center;
-            go.GetComponent<MeshRenderer>().sharedMaterial = font.material;
+            label = UI.GameText.World(healthLabelAnchor, "Health Label", UI.TextStyle.Soft, 0.28f);
+            label.fontStyle = TMPro.FontStyles.Bold;
+            label.rectTransform.sizeDelta = new Vector2(0.3f, 0.08f);
         }
 
         void RefreshLabel()
         {
             if (label == null) return;
-            label.text = Mathf.CeilToInt(Current).ToString();
+            // Rebuild the text only when the shown number changes (no string or mesh churn every hit tick).
+            int value = Mathf.CeilToInt(Current);
+            if (value == shownHealth) return;
+            shownHealth = value;
+            label.SetText("{0}", value);
             label.color = Color.Lerp(new Color(1f, 0.25f, 0.2f), new Color(0.4f, 1f, 0.5f), Current / Mathf.Max(1f, Max));
         }
     }

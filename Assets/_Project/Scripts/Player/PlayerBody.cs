@@ -17,6 +17,9 @@ namespace Roguelike.Player
         [SerializeField] float turnThreshold = 50f;
         [SerializeField] float turnSpeed = 300f;
 
+        /// <summary>Meters from the eyes to the top of the head.</summary>
+        const float HeadAboveEyes = 0.15f;
+
         float yaw;
         bool turning;
 
@@ -67,8 +70,11 @@ namespace Roguelike.Player
 
             if (capsule != null)
             {
-                capsule.height = Height;
-                capsule.center = new Vector3(0f, Height * 0.5f, 0f);
+                // The headset sits at eye level; the body reaches a little higher, to the top of the head, so a
+                // blow at head height still lands.
+                float top = Height + HeadAboveEyes;
+                capsule.height = top;
+                capsule.center = new Vector3(0f, top * 0.5f, 0f);
             }
         }
     }

@@ -15,6 +15,7 @@ MonoBehaviour:
   displayName: Second Wind
   description: +50% stamina regen
   color: {r: 0.7, g: 1, b: 0.9, a: 1}
+  rarity: 0
   effects:
   - stat: 4
     percent: 0.5

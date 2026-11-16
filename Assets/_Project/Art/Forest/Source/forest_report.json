@@ -1,0 +1,661 @@
+[
+  {
+    "name": "Tree_Pine_A",
+    "triangles": 92,
+    "budget": 600,
+    "collision_triangles": 28,
+    "size_unity": [
+      3.259,
+      9.0,
+      3.309
+    ],
+    "collision": "Tree_Pine_Collision: trunk only, r 0.3 m, height 3 m.",
+    "children": [
+      "Tree_Pine_Collision"
+    ]
+  },
+  {
+    "name": "Tree_Pine_B",
+    "triangles": 92,
+    "budget": 600,
+    "collision_triangles": 28,
+    "size_unity": [
+      3.879,
+      9.0,
+      3.939
+    ],
+    "collision": "Tree_Pine_Collision: trunk only, r 0.3 m, height 3 m.",
+    "children": [
+      "Tree_Pine_Collision"
+    ]
+  },
+  {
+    "name": "Tree_Pine_C",
+    "triangles": 124,
+    "budget": 600,
+    "collision_triangles": 28,
+    "size_unity": [
+      3.19,
+      9.036,
+      2.482
+    ],
+    "collision": "Tree_Pine_Collision: trunk only, r 0.3 m, height 3 m.",
+    "children": [
+      "Tree_Pine_Collision"
+    ]
+  },
+  {
+    "name": "Tree_Oak_A",
+    "triangles": 396,
+    "budget": 800,
+    "collision_triangles": 28,
+    "size_unity": [
+      5.651,
+      8.05,
+      6.06
+    ],
+    "collision": "Tree_Oak_Collision: trunk only, r 0.4 m, height 3 m.",
+    "children": [
+      "Tree_Oak_Collision"
+    ]
+  },
+  {
+    "name": "Tree_Oak_B",
+    "triangles": 396,
+    "budget": 800,
+    "collision_triangles": 28,
+    "size_unity": [
+      5.716,
+      8.05,
+      5.921
+    ],
+    "collision": "Tree_Oak_Collision: trunk only, r 0.4 m, height 3 m.",
+    "children": [
+      "Tree_Oak_Collision"
+    ]
+  },
+  {
+    "name": "Bush_A",
+    "triangles": 72,
+    "budget": 150,
+    "collision_triangles": 0,
+    "size_unity": [
+      1.456,
+      0.8,
+      1.252
+    ],
+    "collision": "None (foliage).",
+    "children": []
+  },
+  {
+    "name": "Bush_B",
+    "triangles": 72,
+    "budget": 150,
+    "collision_triangles": 0,
+    "size_unity": [
+      1.438,
+      0.8,
+      1.265
+    ],
+    "collision": "None (foliage).",
+    "children": []
+  },
+  {
+    "name": "Fern",
+    "triangles": 48,
+    "budget": 150,
+    "collision_triangles": 0,
+    "size_unity": [
+      1.16,
+      0.24,
+      1.16
+    ],
+    "collision": "None (foliage).",
+    "children": []
+  },
+  {
+    "name": "Ground_Mound_A",
+    "triangles": 36,
+    "budget": 150,
+    "collision_triangles": 36,
+    "size_unity": [
+      8.0,
+      1.4,
+      7.2
+    ],
+    "collision": "Simplified walkable mound; slopes below 25 degrees, base -0.3 m.",
+    "children": [
+      "Ground_Mound_A_Collision"
+    ]
+  },
+  {
+    "name": "Ground_Mound_B",
+    "triangles": 36,
+    "budget": 150,
+    "collision_triangles": 36,
+    "size_unity": [
+      9.6,
+      1.55,
+      8.64
+    ],
+    "collision": "Simplified walkable mound; slopes below 25 degrees, base -0.3 m.",
+    "children": [
+      "Ground_Mound_B_Collision"
+    ]
+  },
+  {
+    "name": "Ground_Mound_C",
+    "triangles": 36,
+    "budget": 150,
+    "collision_triangles": 36,
+    "size_unity": [
+      12.0,
+      1.7,
+      10.8
+    ],
+    "collision": "Simplified walkable mound; slopes below 25 degrees, base -0.3 m.",
+    "children": [
+      "Ground_Mound_C_Collision"
+    ]
+  },
+  {
+    "name": "Rock_A",
+    "triangles": 28,
+    "budget": 120,
+    "collision_triangles": 0,
+    "size_unity": [
+      1.457,
+      0.8,
+      1.273
+    ],
+    "collision": "Box collider is enough.",
+    "children": []
+  },
+  {
+    "name": "Rock_B",
+    "triangles": 28,
+    "budget": 120,
+    "collision_triangles": 24,
+    "size_unity": [
+      1.293,
+      1.2,
+      1.265
+    ],
+    "collision": "Simplified rock collision mesh.",
+    "children": [
+      "Rock_B_Collision"
+    ]
+  },
+  {
+    "name": "Rock_C",
+    "triangles": 72,
+    "budget": 120,
+    "collision_triangles": 24,
+    "size_unity": [
+      1.381,
+      0.8,
+      1.156
+    ],
+    "collision": "Simplified rock collision mesh.",
+    "children": [
+      "Rock_C_Collision"
+    ]
+  },
+  {
+    "name": "Path_Dirt_Straight",
+    "triangles": 36,
+    "budget": 80,
+    "collision_triangles": 0,
+    "size_unity": [
+      3.5,
+      0.0,
+      6.0
+    ],
+    "collision": "None. Edge vertex alpha in color layer; use vertex-alpha material to feather.",
+    "children": []
+  },
+  {
+    "name": "Stream_Straight",
+    "triangles": 98,
+    "budget": 250,
+    "collision_triangles": 36,
+    "size_unity": [
+      3.0,
+      0.505,
+      6.0
+    ],
+    "collision": "Bed and banks collision; separate Forest_Water surface has no collision.",
+    "children": [
+      "Stream_Straight_Collision",
+      "Stream_Straight_Water",
+      "Stream_Straight_BankStones"
+    ]
+  },
+  {
+    "name": "Path_Dirt_Bend",
+    "triangles": 36,
+    "budget": 80,
+    "collision_triangles": 0,
+    "size_unity": [
+      4.801,
+      0.0,
+      6.605
+    ],
+    "collision": "None. Edge vertex alpha in color layer; use vertex-alpha material to feather.",
+    "children": []
+  },
+  {
+    "name": "Stream_Bend",
+    "triangles": 98,
+    "budget": 250,
+    "collision_triangles": 36,
+    "size_unity": [
+      4.334,
+      0.505,
+      6.48
+    ],
+    "collision": "Bed and banks collision; separate Forest_Water surface has no collision.",
+    "children": [
+      "Stream_Bend_Collision",
+      "Stream_Bend_Water",
+      "Stream_Bend_BankStones"
+    ]
+  },
+  {
+    "name": "Log_Fallen",
+    "triangles": 80,
+    "budget": 150,
+    "collision_triangles": 28,
+    "size_unity": [
+      3.0,
+      0.766,
+      0.756
+    ],
+    "collision": "Log_Fallen_Collision: low-poly capsule-like trunk.",
+    "children": [
+      "Log_Fallen_Collision"
+    ]
+  },
+  {
+    "name": "Palisade_Section",
+    "triangles": 172,
+    "budget": 200,
+    "collision_triangles": 0,
+    "size_unity": [
+      3.0,
+      2.6,
+      0.445
+    ],
+    "collision": "Box collider is enough.",
+    "children": []
+  },
+  {
+    "name": "Palisade_Gate",
+    "triangles": 44,
+    "budget": 200,
+    "collision_triangles": 24,
+    "size_unity": [
+      3.7,
+      2.6,
+      0.362
+    ],
+    "collision": "Two post collision boxes and lintel; 3 m clear opening.",
+    "children": [
+      "Palisade_Gate_Collision"
+    ]
+  },
+  {
+    "name": "Tent",
+    "triangles": 163,
+    "budget": 300,
+    "collision_triangles": 12,
+    "size_unity": [
+      3.08,
+      2.288,
+      3.2
+    ],
+    "collision": "Tent_Collision: box around tent body.",
+    "children": [
+      "Tent_Canvas",
+      "Tent_Collision"
+    ]
+  },
+  {
+    "name": "Log_Pile",
+    "triangles": 144,
+    "budget": 250,
+    "collision_triangles": 0,
+    "size_unity": [
+      2.0,
+      1.268,
+      1.357
+    ],
+    "collision": "Box collider is enough.",
+    "children": []
+  },
+  {
+    "name": "Chopping_Block",
+    "triangles": 60,
+    "budget": 150,
+    "collision_triangles": 0,
+    "size_unity": [
+      0.689,
+      1.209,
+      0.679
+    ],
+    "collision": "Box collider is enough.",
+    "children": []
+  },
+  {
+    "name": "Campfire",
+    "triangles": 120,
+    "budget": 200,
+    "collision_triangles": 0,
+    "size_unity": [
+      1.368,
+      0.3,
+      1.374
+    ],
+    "collision": "None. Fire VFX centre at origin.",
+    "children": []
+  },
+  {
+    "name": "Bridge_Wooden",
+    "triangles": 400,
+    "budget": 600,
+    "collision_triangles": 40,
+    "size_unity": [
+      3.1,
+      1.2,
+      9.0
+    ],
+    "collision": "Bridge_Wooden_Collision: deck, end ramps and rails.",
+    "children": [
+      "Bridge_Wooden_Collision"
+    ]
+  },
+  {
+    "name": "Chapel_Ruin",
+    "triangles": 416,
+    "budget": 1500,
+    "collision_triangles": 84,
+    "size_unity": [
+      10.0,
+      4.0,
+      15.0
+    ],
+    "collision": "Simplified walls, altar and rubble collision; west (-X) side open. Two pointed windows in east wall.",
+    "children": [
+      "Chapel_Ruin_Collision"
+    ]
+  },
+  {
+    "name": "Standing_Stone_A",
+    "triangles": 48,
+    "budget": 80,
+    "collision_triangles": 0,
+    "size_unity": [
+      0.951,
+      2.8,
+      0.924
+    ],
+    "collision": "Box collider is enough.",
+    "children": []
+  },
+  {
+    "name": "Standing_Stone_B",
+    "triangles": 48,
+    "budget": 80,
+    "collision_triangles": 0,
+    "size_unity": [
+      0.997,
+      2.857,
+      0.924
+    ],
+    "collision": "Box collider is enough.",
+    "children": []
+  },
+  {
+    "name": "Standing_Stone_C",
+    "triangles": 48,
+    "budget": 80,
+    "collision_triangles": 0,
+    "size_unity": [
+      0.951,
+      2.1,
+      0.924
+    ],
+    "collision": "Box collider is enough.",
+    "children": []
+  },
+  {
+    "name": "Castle_Wall",
+    "triangles": 588,
+    "budget": 600,
+    "collision_triangles": 0,
+    "size_unity": [
+      28.0,
+      7.5,
+      1.675
+    ],
+    "collision": "Box collider is enough.",
+    "children": []
+  },
+  {
+    "name": "Castle_Wall_Short",
+    "triangles": 276,
+    "budget": 300,
+    "collision_triangles": 0,
+    "size_unity": [
+      12.0,
+      7.5,
+      1.675
+    ],
+    "collision": "Box collider is enough.",
+    "children": []
+  },
+  {
+    "name": "Castle_Tower",
+    "triangles": 536,
+    "budget": 900,
+    "collision_triangles": 44,
+    "size_unity": [
+      5.6,
+      11.0,
+      5.6
+    ],
+    "collision": "Castle_Tower_Collision: 12-sided cylinder. Decorative doorway; tower interior not playable.",
+    "children": [
+      "Castle_Tower_Collision"
+    ]
+  },
+  {
+    "name": "Castle_Gatehouse",
+    "triangles": 324,
+    "budget": 900,
+    "collision_triangles": 36,
+    "size_unity": [
+      9.0,
+      8.0,
+      3.44
+    ],
+    "collision": "Two towers + lintel collision; clear opening 4 m wide, 5 m high.",
+    "children": [
+      "Castle_Gatehouse_Collision"
+    ]
+  },
+  {
+    "name": "Drawbridge",
+    "triangles": 144,
+    "budget": 150,
+    "collision_triangles": 0,
+    "size_unity": [
+      4.0,
+      2.723,
+      6.0
+    ],
+    "collision": "Box collider is enough; walkable. Pivot at hinge, -Z end of deck.",
+    "children": []
+  },
+  {
+    "name": "Castle_Keep",
+    "triangles": 396,
+    "budget": 1200,
+    "collision_triangles": 84,
+    "size_unity": [
+      10.0,
+      13.0,
+      8.04
+    ],
+    "collision": "Walls + roof collision; 2 m \u00d7 2.8 m open entrance on -Z. Empty interior.",
+    "children": [
+      "Castle_Keep_Collision"
+    ]
+  },
+  {
+    "name": "Castle_Well",
+    "triangles": 114,
+    "budget": 250,
+    "collision_triangles": 64,
+    "size_unity": [
+      1.6,
+      1.5,
+      1.6
+    ],
+    "collision": "Castle_Well_Collision: stone ring only, height 0.9 m.",
+    "children": [
+      "Castle_Well_Collision"
+    ]
+  },
+  {
+    "name": "Weapon_Stand",
+    "triangles": 184,
+    "budget": 250,
+    "collision_triangles": 0,
+    "size_unity": [
+      2.0,
+      1.8,
+      0.4
+    ],
+    "collision": "Box collider is enough.",
+    "children": []
+  },
+  {
+    "name": "Banner",
+    "triangles": 5,
+    "budget": 40,
+    "collision_triangles": 0,
+    "size_unity": [
+      1.4,
+      3.0,
+      0.035
+    ],
+    "collision": "None. Pivot top centre. Cloth extends downward 3 m.",
+    "children": []
+  },
+  {
+    "name": "Totem_Base",
+    "triangles": 28,
+    "budget": 150,
+    "collision_triangles": 0,
+    "size_unity": [
+      1.6,
+      0.4,
+      1.6
+    ],
+    "collision": "Box collider is enough.",
+    "children": []
+  },
+  {
+    "name": "Totem",
+    "triangles": 254,
+    "budget": 400,
+    "collision_triangles": 0,
+    "size_unity": [
+      0.9,
+      2.1,
+      0.645
+    ],
+    "collision": "Box collider is enough. Pivot own bottom; place at y=0.4 on base. Totem_Glow crystals separate.",
+    "children": [
+      "Totem_Crystals"
+    ]
+  },
+  {
+    "name": "Totem_Broken",
+    "triangles": 104,
+    "budget": 300,
+    "collision_triangles": 0,
+    "size_unity": [
+      1.292,
+      0.61,
+      1.333
+    ],
+    "collision": "Stump root with separate Chunk_1..Chunk_4 mesh children; add chunk physics later.",
+    "children": [
+      "Chunk_1",
+      "Chunk_2",
+      "Chunk_3",
+      "Chunk_4"
+    ]
+  },
+  {
+    "name": "Extraction_Portal",
+    "triangles": 188,
+    "budget": 400,
+    "collision_triangles": 24,
+    "size_unity": [
+      5.0,
+      3.0,
+      3.0
+    ],
+    "collision": "Two pillar collision meshes combined; empty portal opening. Portal_Runes separate.",
+    "children": [
+      "Extraction_Portal_Runes",
+      "Extraction_Portal_Collision"
+    ]
+  },
+  {
+    "name": "Treasure_Chest",
+    "triangles": 208,
+    "budget": 300,
+    "collision_triangles": 0,
+    "size_unity": [
+      0.9,
+      0.614,
+      0.599
+    ],
+    "collision": "Box collider is enough. Lid child hinge at (0,0.4,-0.275), rotates Unity local X -110 degrees.",
+    "children": [
+      "Lid"
+    ]
+  },
+  {
+    "name": "Challenge_Shrine",
+    "triangles": 98,
+    "budget": 300,
+    "collision_triangles": 0,
+    "size_unity": [
+      0.8,
+      2.2,
+      0.8
+    ],
+    "collision": "Box collider is enough. Separate Glyph child uses Shrine_Glow, front +Z.",
+    "children": [
+      "Glyph"
+    ]
+  },
+  {
+    "name": "Loot_Shard",
+    "triangles": 10,
+    "budget": 60,
+    "collision_triangles": 0,
+    "size_unity": [
+      0.129,
+      0.25,
+      0.137
+    ],
+    "collision": "None. Pivot at centre; white material for runtime tint.",
+    "children": []
+  }
+]

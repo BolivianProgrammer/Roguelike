@@ -22,7 +22,7 @@ namespace Roguelike.Combat
 
         static readonly RaycastHit[] hits = new RaycastHit[24];
         static readonly Collider[] overlaps = new Collider[16];
-        static Material sharedMaterial;
+        static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
 
         [Tooltip("How fast the player's weapon must be moving (m/s) when it meets the bolt to send it back.")]
         public float deflectSpeed = 2.5f;
@@ -49,35 +49,54 @@ namespace Roguelike.Combat
         float damage;
         float age;
 
-        MeshRenderer orb;
-        LineRenderer innerRing;
-        LineRenderer outerRing;
+        [Header("Parts (set in the Bolt prefab)")]
+        [SerializeField] MeshRenderer orb;
+        [SerializeField] TrailRenderer trail;
+        [Tooltip("Rings in world space, so the orb's pulsing size does not squash their line width.")]
+        [SerializeField] LineRenderer innerRing;
+        [SerializeField] LineRenderer outerRing;
+        MaterialPropertyBlock block;
 
         /// <summary>
-        /// Creates a bolt charging in an enemy's hand. It follows the hand and shows the player where it will
-        /// be aimed until <see cref="Launch"/> is called.
+        /// Takes a bolt from the effect pool (Prefabs/Effects/Bolt, made by Roguelike > Build Effect Prefabs),
+        /// charging in an enemy's hand. It follows the hand and shows the player where it will be aimed until
+        /// <see cref="Launch"/> is called. Returns null if the effect library has no bolt.
         /// </summary>
         public static Projectile Spawn(Transform hand, Transform owner, float speed, float damage)
         {
-            var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            go.name = "Bolt";
-            Destroy(go.GetComponent<Collider>());
-            go.transform.position = hand.position;
-            go.transform.localScale = Vector3.one * (Radius * 2f);
+            GameObject go = FxLibrary.Spawn(FxKind.Bolt, hand.position, Quaternion.identity);
+            if (go == null)
+            {
+                Debug.LogWarning("[Projectile] No Bolt prefab in Resources/FxLibrary. Run Roguelike > Build Effect Prefabs.");
+                return null;
+            }
 
-            var projectile = go.AddComponent<Projectile>();
+            var projectile = go.GetComponent<Projectile>();
             projectile.holder = hand;
             projectile.owner = owner;
             projectile.speed = speed;
             projectile.damage = damage;
-            projectile.orb = go.GetComponent<MeshRenderer>();
-            projectile.orb.sharedMaterial = SharedMaterial();
-            projectile.orb.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            projectile.player = FindObjectOfType<PlayerHealth>();
-            projectile.innerRing = CreateRing("Bolt Marker Inner", 0.012f);
-            projectile.outerRing = CreateRing("Bolt Marker Outer", 0.008f);
+            projectile.state = State.Held;
+            projectile.age = 0f;
+            projectile.direction = hand.forward;
+            if (projectile.player == null) projectile.player = FindObjectOfType<PlayerHealth>();
+            projectile.trail.Clear();
+            projectile.trail.emitting = false;
+            projectile.innerRing.enabled = false;
+            projectile.outerRing.enabled = false;
             projectile.SetColor(projectile.aimColor);
             return projectile;
+        }
+
+        /// <summary>Done: back to the pool.</summary>
+        void Despawn()
+        {
+            if (!gameObject.activeSelf) return;
+            trail.emitting = false;
+            innerRing.enabled = false;
+            outerRing.enabled = false;
+            holder = null;
+            FxLibrary.Release(gameObject);
         }
 
         /// <summary>Releases the bolt at where the player's chest is right now.</summary>
@@ -91,12 +110,15 @@ namespace Roguelike.Combat
             state = State.Flying;
             age = 0f;
             SetColor(flyingColor);
+            if (trail != null) trail.emitting = true;
+            Audio.Sfx.Play(Audio.SfxKind.BoltRelease, transform.position);
+            CombatLog.Log("Bolt RELEASED by " + (owner != null ? owner.name : "?") + ", " + toTarget.magnitude.ToString("F2") + " m to chest at " + speed + " m/s (ETA " + (toTarget.magnitude / speed).ToString("F2") + "s)");
         }
 
         /// <summary>The thrower was interrupted before releasing: the bolt simply goes out.</summary>
         public void Fizzle()
         {
-            if (state == State.Held) Destroy(gameObject);
+            if (state == State.Held) Despawn();
         }
 
         Vector3 Chest()
@@ -112,12 +134,12 @@ namespace Roguelike.Combat
             {
                 if (holder == null)
                 {
-                    Destroy(gameObject);
+                    Despawn();
                     return;
                 }
                 transform.position = holder.position;
                 // Pulse while charging so the throw is easy to see coming.
-                transform.localScale = Vector3.one * (Radius * 2f * (0.7f + 0.3f * Mathf.Sin(Time.time * 18f)));
+                orb.transform.localScale = Vector3.one * (Radius * 2f * (0.7f + 0.3f * Mathf.Sin(Time.time * 18f)));
                 Vector3 toChest = Chest() - transform.position;
                 direction = toChest.sqrMagnitude > 0.001f ? toChest.normalized : transform.forward;
             }
@@ -127,12 +149,12 @@ namespace Roguelike.Combat
 
         void FixedUpdate()
         {
-            if (state == State.Held) return;
+            if (state == State.Held || WorldFreeze.Active) return;
 
             age += Time.fixedDeltaTime;
             if (age > lifetime)
             {
-                Destroy(gameObject);
+                Despawn();
                 return;
             }
 
@@ -176,6 +198,7 @@ namespace Roguelike.Combat
                 if (hitPlayer == null && other is CharacterController) hitPlayer = player;
                 if (hitPlayer != null)
                 {
+                    CombatLog.Log("Bolt HIT PLAYER after " + age.ToString("F2") + "s for " + damage);
                     hitPlayer.TakeDamage(new DamageInfo
                     {
                         Amount = damage,
@@ -186,7 +209,7 @@ namespace Roguelike.Combat
                         HitCollider = other,
                         Source = gameObject
                     });
-                    Destroy(gameObject);
+                    Despawn();
                     return true;
                 }
             }
@@ -201,6 +224,7 @@ namespace Roguelike.Combat
             {
                 if (state != State.Deflected) return false;
 
+                CombatLog.Log("Deflected bolt HIT " + CombatLog.Where(other) + " after " + age.ToString("F2") + "s");
                 target.TakeDamage(new DamageInfo
                 {
                     Amount = deflectedDamage,
@@ -212,14 +236,15 @@ namespace Roguelike.Combat
                     HitCollider = other,
                     Source = gameObject
                 });
-                Destroy(gameObject);
+                Despawn();
                 return true;
             }
 
             if (other.GetComponentInParent<Grabbable>() != null && state == State.Deflected) return false;
 
             // Walls, floor, pillars.
-            Destroy(gameObject);
+            CombatLog.Log("Bolt (" + state + ") stopped by " + other.name + " after " + age.ToString("F2") + "s");
+            Despawn();
             return true;
         }
 
@@ -227,18 +252,25 @@ namespace Roguelike.Combat
         bool TryMeetWeapon(Collider other, Vector3 point)
         {
             var item = other.GetComponentInParent<Grabbable>();
-            if (item == null || !item.IsHeld) return false;
+            // A broken guard stops nothing: the bolt flies on into the player.
+            if (!PlayerGuard.CanBlockWith(item)) return false;
 
             float swing = (item.VelocityBeforeImpact(point) - PlayerBody.RigVelocity).magnitude;
             bool deflected = swing >= deflectSpeed;
+            CombatLog.Log("Bolt met " + item.name + " after " + age.ToString("F2") + "s at weapon speed " + swing.ToString("F2") + " m/s (deflect >= " + deflectSpeed + ") -> " + (deflected ? "DEFLECT" : "BLOCK"));
 
+            // A deflection is the bolt's parry; a plain block costs stamina and lets some through, like any blow.
+            PlayerGuard.Outcome outcome = PlayerGuard.Resolve(item, damage, DamageType.Blunt, deflected, false, point, direction, gameObject);
             foreach (var hand in item.Holders)
                 hand.Hand.Haptic(deflected ? 1f : 0.6f, deflected ? 0.15f : 0.08f);
-            DamagePopup.Spawn(point, deflected ? "DEFLECT" : "BLOCK", deflected ? deflectedColor : Color.white);
+            if (outcome != PlayerGuard.Outcome.GuardBroken)
+                DamagePopup.Spawn(point, deflected ? "DEFLECT" : "BLOCK", deflected ? deflectedColor : Color.white);
 
+            Audio.Sfx.Play(deflected ? Audio.SfxKind.Deflect : Audio.SfxKind.Block, point);
+            HitSpark.Spawn(point, -direction, deflected ? deflectedColor : Color.white, deflected ? 22 : 10);
             if (!deflected)
             {
-                Destroy(gameObject);
+                Despawn();
                 return true;
             }
 
@@ -292,45 +324,17 @@ namespace Roguelike.Combat
             }
         }
 
-        /// <summary>Rings live on their own objects so the bolt's size does not squash their line width.</summary>
-        static LineRenderer CreateRing(string name, float width)
-        {
-            var go = new GameObject(name);
-            var ring = go.AddComponent<LineRenderer>();
-            ring.useWorldSpace = true;
-            ring.loop = true;
-            ring.positionCount = RingSegments;
-            ring.startWidth = width;
-            ring.endWidth = width;
-            ring.sharedMaterial = SharedMaterial();
-            ring.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            ring.enabled = false;
-            return ring;
-        }
-
         void SetColor(Color color)
         {
-            // The orb needs its own material instance to be tinted; the rings take their colour directly.
-            orb.material.color = color;
+            // Tinted with a property block: every bolt shares the prefab's material.
+            if (block == null) block = new MaterialPropertyBlock();
+            block.SetColor(BaseColor, color);
+            orb.SetPropertyBlock(block);
+            trail.startColor = new Color(color.r, color.g, color.b, 0.8f);
+            trail.endColor = new Color(color.r, color.g, color.b, 0f);
             innerRing.startColor = innerRing.endColor = color;
             outerRing.startColor = outerRing.endColor = color;
         }
-
-        static Material SharedMaterial()
-        {
-            if (sharedMaterial != null) return sharedMaterial;
-            var shader = Shader.Find("Sprites/Default");
-            if (shader != null) sharedMaterial = new Material(shader);
-            return sharedMaterial;
-        }
-
-        void OnDestroy()
-        {
-            if (orb != null && orb.sharedMaterial != sharedMaterial) Destroy(orb.sharedMaterial);
-            if (innerRing != null) Destroy(innerRing.gameObject);
-            if (outerRing != null) Destroy(outerRing.gameObject);
-        }
-
         sealed class HitDistanceComparer : System.Collections.Generic.IComparer<RaycastHit>
         {
             public static readonly HitDistanceComparer Instance = new HitDistanceComparer();

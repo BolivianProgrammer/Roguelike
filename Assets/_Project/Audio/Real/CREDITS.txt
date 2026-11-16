@@ -1,0 +1,7 @@
+Sound effects in this folder are CC0 (public domain):
+- Kenney (kenney.nl): RPG Audio, Impact Sounds, Interface Sounds, Sci-Fi Sounds.
+- artisticdude, "RPG Sound Pack" (opengameart.org/content/rpg-sound-pack). BoltCharge / BoltRelease use its
+  "shade" and "magic1" clips (short, about 1 s; long looping clips must never go in an SfxKind folder).
+Each subfolder is one SfxKind. Drop more clips in and run Roguelike > Audio > Use Sounds From Folders
+(volumes already tuned in Resources/SoundLibrary are kept). Asset Store packs work the same way: import them,
+then copy the clips you like into the matching folder. PlayerDeath uses two clips made in code (SoundSynth).

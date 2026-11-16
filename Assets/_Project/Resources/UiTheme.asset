@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88860167b7faa92428a177c6fd79a22b, type: 3}
+  m_Name: UiTheme
+  m_EditorClassIdentifier: 
+  menuPanel: {fileID: 4052299978591770518, guid: 420d61ef4f50dbd4e80802ecd4d713b0,
+    type: 3}
+  menuRow: {fileID: 1389559083263029412, guid: d1d79eef23fec064d80ddaf5379e5552, type: 3}
+  panel: {r: 0.07058824, g: 0.0627451, b: 0.05490196, a: 1}
+  border: {r: 0.83137256, g: 0.65882355, b: 0.16470589, a: 1}
+  title: {r: 1, g: 0.9137255, b: 0.65882355, a: 1}
+  header: {r: 0.8666667, g: 0.8235294, b: 0.7294118, a: 1}
+  row: {r: 0.18039216, g: 0.20392157, b: 0.2509804, a: 1}
+  rowText: {r: 1, g: 1, b: 1, a: 1}
+  rowDetail: {r: 1, g: 0.8235294, b: 0.3529412, a: 1}
+  hover: {r: 0.9490196, g: 0.7607843, b: 0.22745098, a: 1}
+  hoverText: {r: 0.0627451, g: 0.047058824, b: 0.023529412, a: 1}
+  disabled: {r: 0.13333334, g: 0.1254902, b: 0.11764706, a: 1}
+  disabledText: {r: 0.6117647, g: 0.58431375, b: 0.5411765, a: 1}
+  disabledDetail: {r: 0.8784314, g: 0.41568628, b: 0.3529412, a: 1}
+  pixelSize: 0.001
+  font: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  displayFont: {fileID: 11400000, guid: df9a1915b326f4746ad2aa5cbf0b22f0, type: 2}
+  textTitle: {fileID: 2100000, guid: b0006fc6c331a174ba94b4eeba41a30d, type: 2}
+  textSoft: {fileID: 2100000, guid: 284eece12db3ebe46b6c7656a4be58c6, type: 2}
+  textBold: {fileID: 2100000, guid: 16f6dd3c72af58f42bde7c440335e032, type: 2}
+  textBanner: {fileID: 2100000, guid: f4d2720b70c743b4f9c8e4b7a7ccd28f, type: 2}
+  fadeBand: {fileID: 21300000, guid: ff7b1c230725a074297a55b2243642c9, type: 3}
+  fadeLine: {fileID: 21300000, guid: fe11778a2743a9d4e9d3fa813d0d45c1, type: 3}
+  panelFill: {fileID: 21300000, guid: 0f27f56678f68594298063a12c4ccc24, type: 3}
+  panelFrame: {fileID: 21300000, guid: 8b5acea08a7095e43b8c2449d8e187b5, type: 3}
+  slash: {r: 1, g: 0.6039216, b: 0.23529412, a: 1}
+  stab: {r: 0.43529412, g: 0.8901961, b: 1, a: 1}
+  blunt: {r: 0.9098039, g: 0.8784314, b: 0.8156863, a: 1}
+  heavyHit: 40
+  heavy: {r: 1, g: 0.2901961, b: 0.18039216, a: 1}
+  band: {r: 0.03137255, g: 0.02745098, b: 0.023529412, a: 0.8156863}
+  hudPanel: {r: 0.05490196, g: 0.047058824, b: 0.039215688, a: 0.78431374}
+  health: {r: 0.78431374, g: 0.16470589, b: 0.11764706, a: 1}
+  stamina: {r: 0.9098039, g: 0.72156864, b: 0.22745098, a: 1}
+  barBack: {r: 0.10980392, g: 0.09411765, b: 0.078431375, a: 0.9411765}

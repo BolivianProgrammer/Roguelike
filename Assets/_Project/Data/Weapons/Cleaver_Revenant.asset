@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b4c1d0e6f834ad4eaef2794f7c8681e, type: 3}
+  m_Name: Cleaver_Revenant
+  m_EditorClassIdentifier: 
+  displayName: Revenant Cleaver
+  mass: 2.2
+  baseDamage: 38
+  minHitSpeed: 1.7
+  fullDamageSpeed: 5.8
+  minDamageFraction: 0.2
+  hitCooldown: 0.4
+  minSwingDistance: 0.38
+  staminaCost: 0
+  staggerMultiplier: 1.3
+  blockStability: 0.72
+  hasEdge: 1
+  hasPoint: 0
+  slashMultiplier: 1
+  stabMultiplier: 1.4
+  bluntMultiplier: 0.5
+  stabSpeedFactor: 0.5

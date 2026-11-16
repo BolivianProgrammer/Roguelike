@@ -15,6 +15,7 @@ MonoBehaviour:
   displayName: Swiftness
   description: +20% move speed
   color: {r: 0.3, g: 0.8, b: 1, a: 1}
+  rarity: 0
   effects:
   - stat: 2
     percent: 0.2

@@ -19,3 +19,13 @@ MonoBehaviour:
   fullDamageSpeed: 6
   minDamageFraction: 0.2
   hitCooldown: 0.35
+  minSwingDistance: 0.3
+  staminaCost: 0
+  staggerMultiplier: 1
+  blockStability: 0.75
+  hasEdge: 1
+  hasPoint: 1
+  slashMultiplier: 1
+  stabMultiplier: 1.4
+  bluntMultiplier: 0.4
+  stabSpeedFactor: 0.5

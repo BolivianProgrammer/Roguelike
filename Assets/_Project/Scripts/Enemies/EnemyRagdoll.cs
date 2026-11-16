@@ -42,6 +42,14 @@ namespace Roguelike.Enemies
             if (nearest != null) nearest.AddForceAtPosition(impulse, point, ForceMode.Impulse);
         }
 
+        /// <summary>A body on a severed part: it stays kinematic and never joins the ragdoll again.</summary>
+        public void Forget(Rigidbody body)
+        {
+            if (bodies == null || body == null) return;
+            for (int i = 0; i < bodies.Length; i++)
+                if (bodies[i] == body) bodies[i] = null;
+        }
+
         void SetKinematic(bool kinematic)
         {
             if (bodies == null) return;

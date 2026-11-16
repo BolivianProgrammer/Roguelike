@@ -42,6 +42,10 @@ namespace Roguelike.Weapons
         [Tooltip("How much a hit knocks enemies off balance, as a multiple of its damage. Above 1 for heavy weapons, below 1 for light ones.")]
         [Min(0f)] public float staggerMultiplier = 1f;
 
+        [Tooltip("Share of an enemy blow this weapon stops when blocking (the rest gets through). A dagger is poor, a " +
+                 "hammer or axe solid. Both hands on the weapon add 0.1. A timed parry stops everything regardless.")]
+        [Range(0f, 1f)] public float blockStability = 0.75f;
+
         [Header("Hit types")]
         [Tooltip("The weapon has a cutting edge. Edge-first swings count as slashes; hits with the flat count as blunt.")]
         public bool hasEdge = true;
@@ -58,10 +62,12 @@ namespace Roguelike.Weapons
 
         public float CalculateDamage(float impactSpeed, DamageType type = DamageType.Slash)
         {
-            float speedFactor = type == DamageType.Stab ? stabSpeedFactor : 1f;
-            float min = minHitSpeed * speedFactor;
+            // Every hit needs the same minimum speed, so slowly pushing the point into someone is not a stab.
+            // Stabs then reach full damage sooner, because a thrust is slower than a swing.
+            float min = minHitSpeed;
             if (impactSpeed < min) return 0f;
-            float t = Mathf.InverseLerp(min, fullDamageSpeed * speedFactor, impactSpeed);
+            float full = type == DamageType.Stab ? Mathf.Max(min + 0.1f, fullDamageSpeed * stabSpeedFactor) : fullDamageSpeed;
+            float t = Mathf.InverseLerp(min, full, impactSpeed);
             return baseDamage * Mathf.Lerp(minDamageFraction, 1f, t) * Multiplier(type);
         }
 

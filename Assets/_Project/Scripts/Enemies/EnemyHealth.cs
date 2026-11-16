@@ -37,6 +37,9 @@ namespace Roguelike.Enemies
         /// </summary>
         public Func<bool> CanBeExecuted;
 
+        /// <summary>Asked on every hit: does something (a shield) stop this blow completely?</summary>
+        public Func<DamageInfo, bool> Guards;
+
         /// <summary>Raised for every hit that did damage to a living enemy, with the damage already scaled by zone.</summary>
         public event Action<DamageInfo, HitZoneType> Damaged;
         /// <summary>Raised once, with the killing blow.</summary>
@@ -62,10 +65,42 @@ namespace Roguelike.Enemies
             return where + ", " + info.Type + ", " + Mathf.RoundToInt(info.Amount) + " damage";
         }
 
+        readonly System.Collections.Generic.List<Vector2> wounds = new System.Collections.Generic.List<Vector2>();
+
         void Awake()
         {
             Current = maxHealth;
         }
+
+        void Start()
+        {
+            // Tougher enemies on harder missions; elites are set up tougher still in their prefab.
+            maxHealth *= Difficulty.EnemyHealth;
+            Current = maxHealth;
+        }
+
+        /// <summary>An open wound that does damage over time: X = damage per second, Y = seconds left.</summary>
+        public void AddWound(float damagePerSecond, float seconds)
+        {
+            if (!IsDead) wounds.Add(new Vector2(damagePerSecond, seconds));
+        }
+
+        void Update()
+        {
+            if (wounds.Count == 0 || IsDead || WorldFreeze.Active) return;
+            float total = 0f;
+            for (int i = wounds.Count - 1; i >= 0; i--)
+            {
+                Vector2 wound = wounds[i];
+                total += wound.x * Time.deltaTime;
+                wound.y -= Time.deltaTime;
+                if (wound.y <= 0f) wounds.RemoveAt(i);
+                else wounds[i] = wound;
+            }
+            Bleed(total);
+        }
+
+        public float Fraction => maxHealth > 0f ? Current / maxHealth : 0f;
 
         public void TakeDamage(DamageInfo info)
         {
@@ -77,6 +112,13 @@ namespace Roguelike.Enemies
             {
                 // The body can still be cut apart.
                 Struck?.Invoke(info);
+                return;
+            }
+
+            // A raised shield takes the blow instead.
+            if (Guards != null && Guards(info))
+            {
+                CombatLog.Log(name + " shield stopped a blow");
                 return;
             }
 
@@ -98,6 +140,8 @@ namespace Roguelike.Enemies
             }
 
             Current = Mathf.Max(0f, Current - info.Amount);
+            CombatLog.Log(name + " took " + info.Amount.ToString("F1") + " (" + zone + " zone" + (info.Execution ? ", EXECUTION" : "") + ") health "
+                + Current.ToString("F1") + " / " + maxHealth);
             if (showDamageNumbers && !info.Execution) DamagePopup.Spawn(info.Point, info.Amount, info.Type);
             Damaged?.Invoke(info, zone);
 

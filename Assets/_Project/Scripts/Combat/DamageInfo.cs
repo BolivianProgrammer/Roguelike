@@ -29,6 +29,8 @@ namespace Roguelike.Combat
         public GameObject Source;
         /// <summary>Set by the target when this hit was a finisher on a stunned enemy.</summary>
         public bool Execution;
+        /// <summary>Only the part of a blow that got through a held block (chip damage): lighter feedback, no immunity window.</summary>
+        public bool Blocked;
     }
 
     /// <summary>Anything that can take a hit: enemies, totems, the boss, the player.</summary>

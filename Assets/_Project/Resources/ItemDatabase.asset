@@ -1,0 +1,213 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 205373fa6dca71c4aa5f712c04a12d51, type: 3}
+  m_Name: ItemDatabase
+  m_EditorClassIdentifier: 
+  items:
+  - id: Sword_Basic
+    displayName: Sword
+    kind: 0
+    rarity: 0
+    prefab: {fileID: 8162058290610651459, guid: dd4a133d89b296044a8c4e20d9240b6e,
+      type: 3}
+    armor: {fileID: 0}
+    trinket: {fileID: 0}
+    price: 0
+    bossLoot: 0
+    chestLoot: 0
+  - id: Hammer_Basic
+    displayName: Hammer
+    kind: 0
+    rarity: 0
+    prefab: {fileID: 2407138008782626607, guid: 184408029662dd344806edd0cff8b33a,
+      type: 3}
+    armor: {fileID: 0}
+    trinket: {fileID: 0}
+    price: 100
+    bossLoot: 0
+    chestLoot: 1
+  - id: Dagger_Basic
+    displayName: Dagger
+    kind: 0
+    rarity: 0
+    prefab: {fileID: 2572690309945648509, guid: 0b7c5847e394d754b870f22f4aa9bb4e,
+      type: 3}
+    armor: {fileID: 0}
+    trinket: {fileID: 0}
+    price: 60
+    bossLoot: 0
+    chestLoot: 1
+  - id: Sword_Fine
+    displayName: Fine Sword
+    kind: 0
+    rarity: 1
+    prefab: {fileID: 4885225191076912019, guid: 923de46efd623ef4c9ce5cecd6b276f4,
+      type: 3}
+    armor: {fileID: 0}
+    trinket: {fileID: 0}
+    price: 260
+    bossLoot: 0
+    chestLoot: 1
+  - id: Dagger_Fine
+    displayName: Fine Dagger
+    kind: 0
+    rarity: 1
+    prefab: {fileID: 2429233015083428454, guid: 16e944b0b1b4ef047a90db1e14079115,
+      type: 3}
+    armor: {fileID: 0}
+    trinket: {fileID: 0}
+    price: 200
+    bossLoot: 0
+    chestLoot: 1
+  - id: Cleaver_Revenant
+    displayName: Revenant Cleaver
+    kind: 0
+    rarity: 1
+    prefab: {fileID: 4059214004394310236, guid: 76a737b988667d94ca2254289333fa62,
+      type: 3}
+    armor: {fileID: 0}
+    trinket: {fileID: 0}
+    price: 0
+    bossLoot: 1
+    chestLoot: 0
+  - id: Axe_Guardian
+    displayName: Guardian Axe
+    kind: 0
+    rarity: 2
+    prefab: {fileID: 8127052386529641720, guid: 85c98a7efdbd88e4e8a4625fd8a1e50e,
+      type: 3}
+    armor: {fileID: 0}
+    trinket: {fileID: 0}
+    price: 0
+    bossLoot: 1
+    chestLoot: 0
+  - id: Armor_Bulwark
+    displayName: Iron Bulwark
+    kind: 1
+    rarity: 0
+    prefab: {fileID: 0}
+    armor: {fileID: 11400000, guid: ea4f9aafb9ea06c44b5e87883dbf68db, type: 2}
+    trinket: {fileID: 0}
+    price: 220
+    bossLoot: 0
+    chestLoot: 0
+  - id: Armor_Wayfarer
+    displayName: Wayfarer's Mail
+    kind: 1
+    rarity: 0
+    prefab: {fileID: 0}
+    armor: {fileID: 11400000, guid: 4a8f206081a1b6845b24e83a1261da5c, type: 2}
+    trinket: {fileID: 0}
+    price: 140
+    bossLoot: 0
+    chestLoot: 0
+  - id: Armor_Shadow
+    displayName: Shadow Leathers
+    kind: 1
+    rarity: 0
+    prefab: {fileID: 0}
+    armor: {fileID: 11400000, guid: b76eb522f33d46e44a886dfffe680564, type: 2}
+    trinket: {fileID: 0}
+    price: 160
+    bossLoot: 0
+    chestLoot: 0
+  - id: Armor_Guardian
+    displayName: Guardian's Carapace
+    kind: 1
+    rarity: 2
+    prefab: {fileID: 0}
+    armor: {fileID: 11400000, guid: df7efb321a52cea4088881a61d2dee28, type: 2}
+    trinket: {fileID: 0}
+    price: 0
+    bossLoot: 1
+    chestLoot: 0
+  - id: Trinket_VampireFang
+    displayName: Vampire Fang
+    kind: 2
+    rarity: 1
+    prefab: {fileID: 0}
+    armor: {fileID: 0}
+    trinket: {fileID: 11400000, guid: 7623826a23d0f2044b3dcffab7062d30, type: 2}
+    price: 240
+    bossLoot: 0
+    chestLoot: 1
+  - id: Trinket_ThornBand
+    displayName: Thorned Band
+    kind: 2
+    rarity: 1
+    prefab: {fileID: 0}
+    armor: {fileID: 0}
+    trinket: {fileID: 11400000, guid: 43df6ad99e578504e844b9088439e9d4, type: 2}
+    price: 180
+    bossLoot: 0
+    chestLoot: 1
+  - id: Trinket_FortuneDie
+    displayName: Fortune's Die
+    kind: 2
+    rarity: 1
+    prefab: {fileID: 0}
+    armor: {fileID: 0}
+    trinket: {fileID: 11400000, guid: cdccdec5dfb8bf3418fdd0fcba9aa163, type: 2}
+    price: 300
+    bossLoot: 0
+    chestLoot: 1
+  - id: Trinket_MiserCoin
+    displayName: Miser's Coin
+    kind: 2
+    rarity: 0
+    prefab: {fileID: 0}
+    armor: {fileID: 0}
+    trinket: {fileID: 11400000, guid: 27f1b581251d4f24fbfa8a745ed63932, type: 2}
+    price: 120
+    bossLoot: 0
+    chestLoot: 1
+  - id: Trinket_EssenceShard
+    displayName: Essence Shard
+    kind: 2
+    rarity: 0
+    prefab: {fileID: 0}
+    armor: {fileID: 0}
+    trinket: {fileID: 11400000, guid: 8e2dd1d79b0cb6f47b897508e26c05e9, type: 2}
+    price: 120
+    bossLoot: 0
+    chestLoot: 1
+  - id: Trinket_Hourglass
+    displayName: Cracked Hourglass
+    kind: 2
+    rarity: 0
+    prefab: {fileID: 0}
+    armor: {fileID: 0}
+    trinket: {fileID: 11400000, guid: 1f807abb4e8fa974ca4faa6a200ec847, type: 2}
+    price: 160
+    bossLoot: 0
+    chestLoot: 1
+  - id: Trinket_BullHorn
+    displayName: Bull Horn
+    kind: 2
+    rarity: 0
+    prefab: {fileID: 0}
+    armor: {fileID: 0}
+    trinket: {fileID: 11400000, guid: 79152df04a00c92429e356f2d964296d, type: 2}
+    price: 140
+    bossLoot: 0
+    chestLoot: 1
+  - id: Trinket_IronHeart
+    displayName: Iron Heart
+    kind: 2
+    rarity: 0
+    prefab: {fileID: 0}
+    armor: {fileID: 0}
+    trinket: {fileID: 11400000, guid: f789e2391c015f04bb723697a3f4e5be, type: 2}
+    price: 150
+    bossLoot: 0
+    chestLoot: 1
+  starterItemId: Sword_Basic

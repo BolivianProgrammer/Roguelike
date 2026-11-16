@@ -52,9 +52,10 @@ namespace Roguelike.Player
         [SerializeField] Vector3 leftRestPosition = new Vector3(-0.28f, -0.32f, 0.42f);
         [Tooltip("Direction a held weapon points while idle.")]
         [SerializeField] Vector3 restDirection = new Vector3(-0.1f, 0.8f, 0.6f);
-        [SerializeField] Vector3 guardPosition = new Vector3(0.3f, -0.28f, 0.5f);
-        [Tooltip("Direction a held weapon points while guarding: up and across the body.")]
-        [SerializeField] Vector3 guardDirection = new Vector3(-0.75f, 0.65f, 0.1f);
+        [Tooltip("Where the hand holds the weapon while guarding. Near the middle of the chest, so attacks from either side meet the blade.")]
+        [SerializeField] Vector3 guardPosition = new Vector3(0.12f, -0.3f, 0.45f);
+        [Tooltip("Direction a held weapon points while guarding: across the chest, tilted up.")]
+        [SerializeField] Vector3 guardDirection = new Vector3(-0.85f, 0.5f, 0.15f);
         [SerializeField] float handSmoothing = 16f;
 
         [Header("Swing")]
@@ -99,14 +100,16 @@ namespace Roguelike.Player
         Move move;
         float moveTime;
         float swingRoll;
-        bool nextSwingFromLeft;
+        // Left-click combo: which side the blade finished on, the last attack picked, and when.
+        ComboSide comboSide = ComboSide.Right;
+        int lastCombo = -1;
+        float lastAttackAt = -10f;
         AttackHeight attackHeight = AttackHeight.Mid;
         ButtonControl chargeButton;
         bool charging;
         float chargeTime;
         bool heavy;
         float weightScale = 1f;
-        Vector2 recentMouse;
         Vector3 moveStartPosition;
         Quaternion moveStartRotation;
 
@@ -118,11 +121,24 @@ namespace Roguelike.Player
         /// <summary>True while mouse-and-keyboard controls are driving the player.</summary>
         public bool Active { get; private set; }
 
+        /// <summary>True when the game is being played with mouse and keyboard rather than a headset.</summary>
+        public static bool IsDesktop { get; private set; }
+
+        /// <summary>
+        /// Set while a menu is open: the mouse is freed to point at it, and looking, attacking and item keys
+        /// stand down. Walking still works, so the player can simply walk away from a menu.
+        /// </summary>
+        public static bool InputBlocked { get; set; }
+
+        bool wasBlocked;
+
         void Start()
         {
             Active = mode == Mode.ForceDesktop || mode == Mode.Auto && !HeadsetRunning();
             // With a mouse the weapon also moves whenever the camera turns, so only deliberate attacks may hurt.
             Weapon.RequireAttackWindow = Active;
+            IsDesktop = Active;
+            InputBlocked = false;
             if (!Active)
             {
                 enabled = false;
@@ -169,13 +185,34 @@ namespace Roguelike.Player
             var mouse = Mouse.current;
             if (keyboard == null || mouse == null) return;
 
-            if (keyboard.escapeKey.wasPressedThisFrame) SetCursorLocked(false);
-            else if (Cursor.lockState != CursorLockMode.Locked && mouse.leftButton.wasPressedThisFrame)
+            if (InputBlocked)
+            {
+                if (!wasBlocked) SetCursorLocked(false);
+                wasBlocked = true;
+                charging = false;
+                Walk(keyboard);
+                UpdateHands(false);
+                ApplyHands();
+                return;
+            }
+            if (wasBlocked)
+            {
+                wasBlocked = false;
+                SetCursorLocked(true);
+            }
+
+            // Esc opens the pause menu (which frees the mouse); a click takes the mouse back afterwards.
+            if (Cursor.lockState != CursorLockMode.Locked && mouse.leftButton.wasPressedThisFrame)
             {
                 SetCursorLocked(true);
                 return;
             }
-            if (keyboard.f1Key.wasPressedThisFrame) showHelp = !showHelp;
+            if (keyboard.f1Key.wasPressedThisFrame)
+            {
+                Meta.GameSettings.Current.showKeyHints = !Meta.GameSettings.Current.showKeyHints;
+                Meta.GameSettings.Save();
+            }
+            showHelp = Meta.GameSettings.Current.showKeyHints;
 
             bool locked = Cursor.lockState == CursorLockMode.Locked;
             Vector2 mouseDelta = locked ? mouse.delta.ReadValue() : Vector2.zero;
@@ -195,11 +232,9 @@ namespace Roguelike.Player
 
         void Look(Vector2 mouseDelta)
         {
-            // Remember which way the mouse has been moving so a click can swing that way.
-            recentMouse = Vector2.Lerp(recentMouse, mouseDelta, 1f - Mathf.Exp(-12f * Time.deltaTime));
-
-            yaw += mouseDelta.x * mouseSensitivity;
-            pitch = Mathf.Clamp(pitch - mouseDelta.y * mouseSensitivity, -85f, 85f);
+            float sensitivity = Meta.GameSettings.Current.mouseSensitivity > 0f ? Meta.GameSettings.Current.mouseSensitivity : mouseSensitivity;
+            yaw += mouseDelta.x * sensitivity;
+            pitch = Mathf.Clamp(pitch - mouseDelta.y * sensitivity, -85f, 85f);
             origin.rotation = Quaternion.Euler(0f, yaw, 0f);
             head.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
         }
@@ -224,7 +259,7 @@ namespace Roguelike.Player
         void HandleItems(Keyboard keyboard)
         {
             // E: pick up what you look at, or draw from a holster; with a weapon in hand, put it away.
-            if (keyboard.eKey.wasPressedThisFrame)
+            if (keyboard.eKey.wasPressedThisFrame && Hub.HubNpc.Focused == null && UI.InteractPrompt.Focused == null)
             {
                 if (rightGrabber.Held != null) PutAway();
                 else if (!rightGrabber.TryGrab()) DrawFromHolster();
@@ -293,18 +328,18 @@ namespace Roguelike.Player
 
             if (!charging && mouse.leftButton.wasPressedThisFrame)
             {
-                // Swing the way the mouse is moving: left, right, or down for an overhead strike.
-                if (recentMouse.magnitude > 1.5f)
+                // Left click: the next attack of a natural combo, picked at random (see NextComboAttack).
+                ComboAttack next = NextComboAttack();
+                if (next.stab)
                 {
-                    if (Mathf.Abs(recentMouse.y) > Mathf.Abs(recentMouse.x) && recentMouse.y < 0f) swingRoll = 90f;
-                    else swingRoll = recentMouse.x > 0f ? 180f : 0f;
+                    heavy = false;
+                    StartMove(Move.Stab);
                 }
                 else
                 {
-                    swingRoll = nextSwingFromLeft ? 180f : 0f;
+                    swingRoll = next.roll;
+                    BeginCharge(mouse.leftButton);
                 }
-                nextSwingFromLeft = swingRoll == 0f;
-                BeginCharge(mouse.leftButton);
             }
             else if (!charging && TryDirectionKey(keyboard))
             {
@@ -326,6 +361,86 @@ namespace Roguelike.Player
                 heavy = false;
                 StartMove(Move.Stab);
             }
+        }
+
+        // ---------------------------------------------------------------- Left-click combo
+
+        enum ComboSide { Right, Left, Centre }
+
+        /// <summary>One attack the left click can pick: a swing (its roll) or the stab, and where the blade starts and ends.</summary>
+        struct ComboAttack
+        {
+            public float roll;
+            public bool stab;
+            public ComboSide from, to;
+            public float weight;
+
+            public ComboAttack(float roll, ComboSide from, ComboSide to, float weight, bool stab = false)
+            {
+                this.roll = roll;
+                this.from = from;
+                this.to = to;
+                this.weight = weight;
+                this.stab = stab;
+            }
+        }
+
+        /// <summary>Every attack the desktop controls have (the same set as the number keys and the stab).</summary>
+        static readonly ComboAttack[] ComboAttacks =
+        {
+            new ComboAttack(0f, ComboSide.Right, ComboSide.Left, 3f),      // right to left
+            new ComboAttack(180f, ComboSide.Left, ComboSide.Right, 3f),    // left to right (backhand)
+            new ComboAttack(45f, ComboSide.Right, ComboSide.Left, 2.5f),   // diagonal down from the right
+            new ComboAttack(135f, ComboSide.Left, ComboSide.Right, 2.5f),  // diagonal down from the left
+            new ComboAttack(90f, ComboSide.Centre, ComboSide.Centre, 2f),  // overhead
+            new ComboAttack(270f, ComboSide.Centre, ComboSide.Centre, 1f), // rising cut
+            new ComboAttack(0f, ComboSide.Centre, ComboSide.Centre, 1.5f, stab: true),
+        };
+
+        /// <summary>Seconds without attacking after which the combo starts again from a ready stance.</summary>
+        const float ComboReset = 1.4f;
+
+        /// <summary>
+        /// Picks the left click's next attack at random, but so a chain of them flows like real swordplay: each
+        /// one starts where the last left the blade (a cut that ends on the left is followed by one from the left,
+        /// an overhead or a thrust), never the same attack twice in a row, and after a pause it starts again from
+        /// the ready stance (blade on the right).
+        /// </summary>
+        ComboAttack NextComboAttack()
+        {
+            if (Time.time - lastAttackAt > ComboReset)
+            {
+                comboSide = ComboSide.Right;
+                lastCombo = -1;
+            }
+
+            float total = 0f;
+            for (int i = 0; i < ComboAttacks.Length; i++)
+                if (Flows(i)) total += ComboAttacks[i].weight;
+
+            float pick = Random.value * total;
+            int chosen = 0;
+            for (int i = 0; i < ComboAttacks.Length; i++)
+            {
+                if (!Flows(i)) continue;
+                chosen = i;
+                pick -= ComboAttacks[i].weight;
+                if (pick <= 0f) break;
+            }
+
+            lastCombo = chosen;
+            lastAttackAt = Time.time;
+            // After an overhead, a rising cut or a thrust the blade is back in the middle: either side can follow.
+            comboSide = ComboAttacks[chosen].to;
+            return ComboAttacks[chosen];
+        }
+
+        /// <summary>True if attack i can follow the last one: not a repeat, and starting where the blade is.</summary>
+        bool Flows(int i)
+        {
+            if (i == lastCombo) return false;
+            ComboSide from = ComboAttacks[i].from;
+            return from == ComboSide.Centre || comboSide == ComboSide.Centre || from == comboSide;
         }
 
         /// <summary>
@@ -378,18 +493,30 @@ namespace Roguelike.Player
             // Heavier weapons take longer to swing.
             weightScale = 1f + rightGrabber.Held.Body.mass * weightSlowdownPerKg;
 
-            // Weapons can only hurt while the attack is playing.
-            float duration = next == Move.Swing
-                ? (swingWindup + swingTime) * weightScale
-                : (stabWindup + stabTime) * weightScale + stabHold;
-            if (heavy) Weapon.OpenAttackWindow(duration + 0.15f, heavyDamageScale, heavyStaggerScale, heavyStaminaScale);
-            else Weapon.OpenAttackWindow(duration + 0.15f);
+            // Weapons can only hurt during the strike itself. The wind-up (bringing the blade back into position)
+            // must not: it moves fast, often with the flat or the back of the blade, and can pass through the enemy.
+            windowPending = true;
+            windowDuration = next == Move.Swing
+                ? swingTime * weightScale
+                : stabTime * weightScale + stabHold;
+        }
+
+        bool windowPending;
+        float windowDuration;
+
+        /// <summary>Called when the wind-up ends and the strike starts.</summary>
+        void OpenStrikeWindow()
+        {
+            if (!windowPending) return;
+            windowPending = false;
+            if (heavy) Weapon.OpenAttackWindow(windowDuration + 0.15f, heavyDamageScale, heavyStaggerScale, heavyStaminaScale);
+            else Weapon.OpenAttackWindow(windowDuration + 0.15f);
         }
 
         float HeldStaminaCost()
         {
             var weapon = rightGrabber.Held != null ? rightGrabber.Held.GetComponent<Weapon>() : null;
-            return weapon != null && weapon.Definition != null ? weapon.Definition.StaminaCost : 0f;
+            return weapon != null && weapon.Definition != null ? weapon.Definition.StaminaCost * PlayerStats.Get(StatType.StaminaCost) : 0f;
         }
 
         void UpdateHands(bool guarding)
@@ -409,7 +536,8 @@ namespace Roguelike.Player
             }
             else if (move == Move.None)
             {
-                guarding &= rightGrabber.Held != null;
+                // A broken guard drops the weapon out of the way for a moment.
+                guarding &= rightGrabber.Held != null && !Combat.PlayerGuard.Broken;
                 Vector3 goalPosition = guarding ? guardPosition : rightRestPosition;
                 Vector3 goalDirection = (guarding ? guardDirection : restDirection).normalized;
                 Quaternion goalRotation = Quaternion.LookRotation(goalDirection, Vector3.back);
@@ -450,12 +578,14 @@ namespace Roguelike.Player
             }
             else if (moveTime < windup + swing)
             {
+                OpenStrikeWindow();
                 float t = (moveTime - windup) / swing;
                 SwingPose(Mathf.Lerp(startAngle, endAngle, t), out rightPosition, out rightRotation);
             }
             else
             {
                 move = Move.None;
+                windowPending = false;
             }
         }
 
@@ -493,6 +623,7 @@ namespace Roguelike.Player
             }
             else if (moveTime < windup + thrust)
             {
+                OpenStrikeWindow();
                 float t = (moveTime - windup) / thrust;
                 rightPosition = Vector3.Lerp(stabStart, stabEnd, t);
                 rightRotation = aim;
@@ -500,6 +631,7 @@ namespace Roguelike.Player
             else if (moveTime >= windup + thrust + stabHold)
             {
                 move = Move.None;
+                windowPending = false;
             }
         }
 
@@ -521,65 +653,66 @@ namespace Roguelike.Player
             if (!Active) return;
             SetCursorLocked(false);
             Weapon.RequireAttackWindow = false;
+            IsDesktop = false;
+            InputBlocked = false;
         }
 
-        /// <summary>Shows the held weapon's special and whether it is ready, at the bottom of the screen.</summary>
-        void DrawSpecialStatus()
-        {
-            if (PlayerStamina.Exists)
-                GUI.Label(new Rect(Screen.width * 0.5f - 150f, Screen.height - 62f, 300f, 22f),
-                    "Stamina: " + Mathf.CeilToInt(PlayerStamina.Current) + " / " + Mathf.CeilToInt(PlayerStamina.Max)
-                    + "   |   Aim: " + attackHeight
-                    + (charging && chargeTime >= heavyChargeTime ? "   HEAVY" : ""));
+        // ---------------------------------------------------------------- Screen HUD
 
-            if (!string.IsNullOrEmpty(Enemies.EnemyHealth.LastHit))
-                GUI.Label(new Rect(Screen.width * 0.5f - 150f, Screen.height - 84f, 400f, 22f), "Last hit: " + Enemies.EnemyHealth.LastHit);
+        /// <summary>The controls card. Keys in gold, actions in the body colour.</summary>
+        const string ControlsText =
+            "<color=#FFD25A>WASD</color>  move    <color=#FFD25A>Shift</color>  sprint    <color=#FFD25A>Mouse</color>  look\n" +
+            "<color=#FFD25A>E</color>  pick up / draw / put away / talk\n" +
+            "<color=#FFD25A>G</color>  drop or throw\n" +
+            "<color=#FFD25A>Left click</color>  attack <color=#9C958A>(each click flows into the next)</color>\n" +
+            "<color=#9C958A>Exact swings:</color>  <color=#FFD25A>1 2</color>  sideways    <color=#FFD25A>3 4</color>  overhead / upward\n" +
+            "<color=#FFD25A>5 6</color>  diagonals\n" +
+            "<color=#FFD25A>Z X C</color>  aim high / mid / low\n" +
+            "<color=#FFD25A>Hold</color> an attack, release  heavy\n" +
+            "<color=#FFD25A>Middle click</color> or <color=#FFD25A>F</color>  stab\n" +
+            "<color=#FFD25A>Hold right click</color>  guard <color=#9C958A>(look at the attack)</color>\n" +
+            "<color=#FFD25A>R</color>  weapon special    <color=#FFD25A>Q</color>  two-handed grip\n" +
+            "<color=#FFD25A>Esc</color>  pause";
 
-            if (rightGrabber.Held == null) return;
-            var weapon = rightGrabber.Held.GetComponent<Weapon>();
-            if (weapon == null || weapon.Special == null) return;
+        float nextHudText;
 
-            var special = weapon.Special;
-            string status = special.IsActive ? "ACTIVE"
-                : special.IsReady ? "ready (R)"
-                : Mathf.CeilToInt(special.CooldownRemaining) + "s";
-            GUI.Label(new Rect(Screen.width * 0.5f - 150f, Screen.height - 40f, 300f, 22f),
-                weapon.Definition.displayName + "  |  " + special.DisplayName + ": " + status);
-        }
-
-        void OnGUI()
+        /// <summary>Crosshair, controls card, and the combat / weapon lines at the bottom of the screen.</summary>
+        void LateUpdate()
         {
             if (!Active) return;
+            UI.DesktopHud hud = UI.DesktopHud.Get();
+            if (hud == null) return;
+            hud.SetCrosshair(!InputBlocked);
+            hud.SetHelp(showHelp, ControlsText);
 
-            // Crosshair.
-            GUI.Label(new Rect(Screen.width * 0.5f - 5f, Screen.height * 0.5f - 11f, 20f, 22f), "+");
+            // The lines change at most a few times a second; build their strings at that pace, not every frame.
+            if (Time.unscaledTime < nextHudText) return;
+            nextHudText = Time.unscaledTime + 0.1f;
+            hud.SetCombat(CombatLine());
+            hud.SetWeapon(WeaponLine());
+        }
 
-            DrawSpecialStatus();
+        string CombatLine()
+        {
+            string line = "Aim  <color=#DDD2BA>" + attackHeight + "</color>";
+            if (charging && chargeTime >= heavyChargeTime) line += "    <color=#FF6A3D><b>HEAVY</b></color>";
+            if (!string.IsNullOrEmpty(Enemies.EnemyHealth.LastHit)) line += "    <color=#9C958A>Last hit  " + Enemies.EnemyHealth.LastHit + "</color>";
+            return line;
+        }
 
-            if (!showHelp)
-            {
-                GUI.Label(new Rect(10f, 10f, 300f, 22f), "F1: controls");
-                return;
-            }
+        string WeaponLine()
+        {
+            if (rightGrabber.Held == null) return null;
+            var weapon = rightGrabber.Held.GetComponent<Weapon>();
+            if (weapon == null) return null;
+            string name = "<b>" + weapon.Definition.displayName + "</b>";
+            if (weapon.Special == null) return name;
 
-            GUI.Box(new Rect(10f, 10f, 330f, 345f), "Desktop controls (F1 to hide)");
-            GUI.Label(new Rect(20f, 34f, 310f, 315f),
-                "WASD: move    Shift: sprint\n" +
-                "Mouse: look\n" +
-                "E: pick up what you look at / draw / put away\n" +
-                "G: drop or throw\n" +
-                "Left click: swing (flick the mouse left,\n" +
-                "    right or down to choose the direction)\n" +
-                "1: swing right to left    2: left to right\n" +
-                "3: overhead    4: upward\n" +
-                "5: diagonal from right    6: diagonal from left\n" +
-                "Z / X / C: aim high (head) / mid / low (legs)\n" +
-                "Hold any attack button, then release: heavy\n" +
-                "Middle click or F: stab\n" +
-                "Hold right click: guard (look at the attack)\n" +
-                "R: weapon special attack\n" +
-                "Q: second hand on / off the weapon\n" +
-                "Esc: free the mouse");
+            var special = weapon.Special;
+            string status = special.IsActive ? "<color=#FFD25A><b>ACTIVE</b></color>"
+                : special.IsReady ? "<color=#FFD25A>READY</color>  <color=#9C958A>[R]</color>"
+                : "<color=#9C958A>" + Mathf.CeilToInt(special.CooldownRemaining) + "s</color>";
+            return name + "   <color=#D4A82A>|</color>   " + special.DisplayName + "  " + status;
         }
     }
 }

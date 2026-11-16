@@ -1334,8 +1334,8 @@ MonoBehaviour:
   rightRestPosition: {x: 0.28, y: -0.32, z: 0.42}
   leftRestPosition: {x: -0.28, y: -0.32, z: 0.42}
   restDirection: {x: -0.1, y: 0.8, z: 0.6}
-  guardPosition: {x: 0.3, y: -0.28, z: 0.5}
-  guardDirection: {x: -0.75, y: 0.65, z: 0.1}
+  guardPosition: {x: 0.12, y: -0.3, z: 0.45}
+  guardDirection: {x: -0.85, y: 0.5, z: 0.15}
   handSmoothing: 16
   shoulder: {x: 0.18, y: -0.28, z: 0.05}
   reach: 0.5
@@ -1609,6 +1609,26 @@ PrefabInstance:
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0,
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6232745470614056090, guid: f6336ac4ac8b4d34bc5072418cdc62a0,
+        type: 3}
+      propertyPath: m_Radius
+      value: 0.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 6232745470614056090, guid: f6336ac4ac8b4d34bc5072418cdc62a0,
+        type: 3}
+      propertyPath: m_SkinWidth
+      value: 0.025
+      objectReference: {fileID: 0}
+    - target: {fileID: 6232745470614056090, guid: f6336ac4ac8b4d34bc5072418cdc62a0,
+        type: 3}
+      propertyPath: m_StepOffset
+      value: 0.45
+      objectReference: {fileID: 0}
+    - target: {fileID: 6232745470614056090, guid: f6336ac4ac8b4d34bc5072418cdc62a0,
+        type: 3}
+      propertyPath: m_MinMoveDistance
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []

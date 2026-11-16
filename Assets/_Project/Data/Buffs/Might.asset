@@ -15,6 +15,7 @@ MonoBehaviour:
   displayName: Might
   description: +25% damage
   color: {r: 1, g: 0.35, b: 0.25, a: 1}
+  rarity: 0
   effects:
   - stat: 0
     percent: 0.25

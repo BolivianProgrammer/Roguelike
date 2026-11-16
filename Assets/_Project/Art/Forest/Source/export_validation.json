@@ -1,0 +1,330 @@
+[
+  {
+    "file": "Banner.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Bridge_Wooden.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Bush_A.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Bush_B.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Campfire.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Castle_Gatehouse.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Castle_Keep.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Castle_Tower.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Castle_Wall.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Castle_Wall_Short.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Castle_Well.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Challenge_Shrine.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Chapel_Ruin.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Chopping_Block.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Drawbridge.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Extraction_Portal.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Fern.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Ground_Mound_A.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Ground_Mound_B.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Ground_Mound_C.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Log_Fallen.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Log_Pile.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Loot_Shard.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Palisade_Gate.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Palisade_Section.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Path_Dirt_Bend.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Path_Dirt_Straight.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Rock_A.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Rock_B.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Rock_C.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Standing_Stone_A.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Standing_Stone_B.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Standing_Stone_C.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Stream_Bend.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Stream_Straight.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Tent.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Totem.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Totem_Base.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Totem_Broken.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Treasure_Chest.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true,
+    "hinge_blender": [
+      0.0,
+      0.27500003576278687,
+      0.3999999463558197
+    ],
+    "hinge_ok": true
+  },
+  {
+    "file": "Tree_Oak_A.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Tree_Oak_B.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Tree_Pine_A.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Tree_Pine_B.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Tree_Pine_C.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  },
+  {
+    "file": "Weapon_Stand.fbx",
+    "mesh_only": true,
+    "uv_present": true,
+    "finite": true,
+    "root_at_origin": true
+  }
+]

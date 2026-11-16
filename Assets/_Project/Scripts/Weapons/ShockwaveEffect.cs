@@ -1,56 +1,56 @@
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using Roguelike.Combat;
-using Roguelike.Player;
 
 namespace Roguelike.Weapons
 {
-    /// <summary>A sphere that swells to the shockwave's radius and fades out.</summary>
+    /// <summary>
+    /// A sphere that swells to the shockwave's radius and fades out. The look lives in the Shockwave prefab
+    /// (Prefabs/Effects, made by Roguelike > Build Effect Prefabs); instances come from the effect pool and are
+    /// tinted with a property block, so no material is created at runtime.
+    /// </summary>
     public class ShockwaveEffect : MonoBehaviour
     {
-        const float Lifetime = 0.35f;
+        static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
 
+        [SerializeField] float lifetime = 0.35f;
+        [SerializeField] Renderer sphere;
+
+        MaterialPropertyBlock block;
         float radius;
         float age;
         Color color;
-        Material material;
 
         public static void Spawn(Vector3 position, float radius, Color color)
         {
-            var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            go.name = "Shockwave";
-            Destroy(go.GetComponent<Collider>());
-            go.transform.position = position;
-            go.transform.localScale = Vector3.zero;
-
-            var effect = go.AddComponent<ShockwaveEffect>();
+            GameObject go = FxLibrary.Spawn(FxKind.Shockwave, position, Quaternion.identity);
+            if (go == null) return;
+            var effect = go.GetComponent<ShockwaveEffect>();
             effect.radius = radius;
             effect.color = color;
-
-            var shader = Shader.Find("Sprites/Default");
-            var meshRenderer = go.GetComponent<MeshRenderer>();
-            if (shader != null) meshRenderer.material = new Material(shader);
-            meshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            effect.material = meshRenderer.material;
-            effect.material.color = color;
+            effect.age = 0f;
+            go.transform.localScale = Vector3.zero;
+            effect.Tint(color);
         }
 
         void Update()
         {
             age += Time.deltaTime;
-            float t = Mathf.Clamp01(age / Lifetime);
+            float t = Mathf.Clamp01(age / lifetime);
             transform.localScale = Vector3.one * (radius * 2f * Mathf.Sqrt(t));
 
             var faded = color;
             faded.a = color.a * (1f - t);
-            material.color = faded;
+            Tint(faded);
 
-            if (age >= Lifetime) Destroy(gameObject);
+            if (age >= lifetime) FxLibrary.Release(gameObject);
         }
 
-        void OnDestroy()
+        void Tint(Color tint)
         {
-            if (material != null) Destroy(material);
+            if (sphere == null) return;
+            if (block == null) block = new MaterialPropertyBlock();
+            block.SetColor(BaseColor, tint);
+            sphere.SetPropertyBlock(block);
         }
     }
 }

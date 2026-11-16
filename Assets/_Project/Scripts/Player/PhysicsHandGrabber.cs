@@ -102,7 +102,8 @@ namespace Roguelike.Player
             }
             wasPressed = pressed;
 
-            if (specialAction != null && specialAction.WasPressedThisFrame()) ActivateHeldSpecial();
+            // While a menu is open the trigger selects from it instead.
+            if (specialAction != null && specialAction.WasPressedThisFrame() && !UI.WorldMenu.IsOpen && !UI.BuffCards.IsOpen) ActivateHeldSpecial();
 
             UpdatePointer(pressed);
         }
@@ -364,8 +365,7 @@ namespace Roguelike.Player
             pointer.endWidth = 0.002f;
             pointer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             pointer.receiveShadows = false;
-            var shader = Shader.Find("Sprites/Default");
-            if (shader != null) pointer.material = new Material(shader);
+            pointer.sharedMaterial = Combat.FlatMaterials.Shared;
             pointer.startColor = pointerColor;
             pointer.endColor = pointerColor;
             pointer.enabled = false;

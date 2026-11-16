@@ -51,6 +51,7 @@ namespace Roguelike.Weapons
             activeUntil = Time.time + activeTime;
             wasActive = true;
             SetGlow(true);
+            Audio.Sfx.Play(Audio.SfxKind.Special, transform.position);
             Haptic(0.8f, 0.15f);
             OnActivated();
             return true;
@@ -62,7 +63,7 @@ namespace Roguelike.Weapons
             activeUntil = 0f;
             wasActive = false;
             wasReady = false;
-            readyAt = Time.time + cooldown;
+            readyAt = Time.time + cooldown * Player.PlayerStats.Get(Player.StatType.SpecialCooldown);
             SetGlow(false);
         }
 

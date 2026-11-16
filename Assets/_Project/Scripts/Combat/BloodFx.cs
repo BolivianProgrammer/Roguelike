@@ -14,21 +14,44 @@ namespace Roguelike.Combat
         /// <summary>A one-off spray of blood from a point, thrown in a direction.</summary>
         public static void Burst(Vector3 position, Vector3 direction, int count = 45)
         {
-            ParticleSystem system = Create("Blood Burst", position, direction, 0.6f);
+            Quaternion facing = direction.sqrMagnitude > 0.0001f ? Quaternion.LookRotation(direction) : Quaternion.identity;
+            GameObject pooled = FxLibrary.Spawn(FxKind.BloodBurst, position, facing);
+            if (pooled != null)
+            {
+                // The prefab's burst size scaled to this blow.
+                var pooledSystem = pooled.GetComponent<ParticleSystem>();
+                var pooledEmission = pooledSystem.emission;
+                pooledEmission.SetBurst(0, new ParticleSystem.Burst(0f, (short)count));
+            }
+            else
+            {
+                // Fallback if the effect library has not been built (Roguelike > Build Effect Prefabs).
+                ParticleSystem system = Create("Blood Burst", position, direction, 0.6f);
+                var emission = system.emission;
+                emission.rateOverTime = 0f;
+                emission.SetBursts(new[] { new ParticleSystem.Burst(0f, (short)count) });
+                var shape = system.shape;
+                shape.angle = 35f;
+                system.Play();
+            }
 
-            var emission = system.emission;
-            emission.rateOverTime = 0f;
-            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, (short)count) });
-
-            var shape = system.shape;
-            shape.angle = 35f;
-
-            system.Play();
+            // The spray lands: a few splashes on the floor around and ahead of it.
+            int splashes = Mathf.Clamp(count / 25, 1, 5);
+            for (int i = 0; i < splashes; i++)
+            {
+                Vector3 spread = direction * Random.Range(0.2f, 0.9f) + Random.insideUnitSphere * 0.35f;
+                BloodDecal.Splat(position + spread, Mathf.Lerp(0.25f, 0.6f, count / 120f), direction);
+            }
+            // The blow already made its own hit sound; only a gush big enough to be a severing adds one.
+            if (count >= 80) Audio.Sfx.Play(Audio.SfxKind.Sever, position, Mathf.Clamp01(count / 80f));
         }
 
         /// <summary>Blood pumping from a stump for a few seconds. Follows the body part it is attached to.</summary>
         public static void Stream(Transform parent, Vector3 position, Vector3 direction, float duration = 3f)
         {
+            Quaternion facing = direction.sqrMagnitude > 0.0001f ? Quaternion.LookRotation(direction) : Quaternion.identity;
+            if (FxLibrary.Spawn(FxKind.BloodStream, position, facing, parent) != null) return;
+
             ParticleSystem system = Create("Blood Stream", position, direction, duration);
             system.transform.SetParent(parent, true);
 
@@ -79,8 +102,7 @@ namespace Roguelike.Combat
         static Material Material()
         {
             if (material != null) return material;
-            var shader = Shader.Find("Sprites/Default");
-            if (shader != null) material = new Material(shader);
+            material = new Material(FlatMaterials.Shared);
             return material;
         }
     }

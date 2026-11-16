@@ -50,6 +50,13 @@ namespace Roguelike.Player
             instance.current = Mathf.Min(Max, instance.current + amount);
         }
 
+        /// <summary>Holds off regeneration for this long (on top of the usual delay), e.g. while the guard is broken.</summary>
+        public static void DelayRegen(float seconds)
+        {
+            if (instance == null) return;
+            instance.lastUseTime = Mathf.Max(instance.lastUseTime, Time.time + seconds);
+        }
+
         /// <summary>True if at least this much stamina is available, without spending it.</summary>
         public static bool Has(float amount) => instance == null || instance.current >= amount;
 

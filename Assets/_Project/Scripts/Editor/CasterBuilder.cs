@@ -30,16 +30,15 @@ namespace Roguelike.EditorTools
 
             // No sword: hide it and its hitbox. (A prefab variant cannot delete parts of its parent, only switch them off.)
             foreach (var t in instance.GetComponentsInChildren<Transform>(true))
-                if (t.name == "Grunt Sword" || t.name == "Grunt Sword Hitbox") t.gameObject.SetActive(false);
+                if (t.name == "Enemy Weapon" || t.name == "Enemy Weapon Hitbox") t.gameObject.SetActive(false);
 
             // A different colour so it can be told apart from a Grunt at a distance.
-            var material = AssetDatabase.LoadAssetAtPath<Material>(MaterialPath);
-            if (material == null)
-            {
-                material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-                material.SetColor("_BaseColor", new Color(0.25f, 0.5f, 0.9f));
-                AssetDatabase.CreateAsset(material, MaterialPath);
-            }
+            // It is the Revenant's own material, tinted blue, so the texture still shows.
+            var source = AssetDatabase.LoadAssetAtPath<Material>(ArtImporter.RevenantFolder + "/Revenant.mat");
+            AssetDatabase.DeleteAsset(MaterialPath);
+            var material = source != null ? new Material(source) : new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            material.SetColor("_BaseColor", new Color(0.5f, 0.68f, 1f));
+            AssetDatabase.CreateAsset(material, MaterialPath);
             foreach (var skin in instance.GetComponentsInChildren<SkinnedMeshRenderer>())
             {
                 var materials = skin.sharedMaterials;
@@ -64,16 +63,18 @@ namespace Roguelike.EditorTools
             brain.FindProperty("aggroRange").floatValue = 18f;
             brain.FindProperty("timeBetweenAttacks").vector2Value = new Vector2(1.8f, 3f);
 
-            // One attack: the slash animation doubles as a throw, releasing the bolt where the swing is fastest.
+            // One attack: the overhead swing doubles as a throw, releasing the bolt where the hand is fastest.
             var attacks = brain.FindProperty("attacks");
             attacks.arraySize = 1;
             var attack = attacks.GetArrayElementAtIndex(0);
-            attack.FindPropertyRelative("stateName").stringValue = "SlashA";
-            attack.FindPropertyRelative("duration").floatValue = 1.5f;
-            attack.FindPropertyRelative("hitStart").floatValue = 0.6f;
-            attack.FindPropertyRelative("hitEnd").floatValue = 0.7f;
+            attack.FindPropertyRelative("stateName").stringValue = "Attack_Overhead";
+            attack.FindPropertyRelative("duration").floatValue = 1.6f;
+            attack.FindPropertyRelative("hitStart").floatValue = 0.78f;
+            attack.FindPropertyRelative("hitEnd").floatValue = 0.88f;
             attack.FindPropertyRelative("damage").floatValue = 12f;
             attack.FindPropertyRelative("ranged").boolValue = true;
+            attack.FindPropertyRelative("extraHits").arraySize = 0;
+            attack.FindPropertyRelative("damageType").enumValueIndex = (int)Roguelike.Combat.DamageType.Blunt;
             brain.ApplyModifiedPropertiesWithoutUndo();
 
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(instance, CasterPrefabPath);
